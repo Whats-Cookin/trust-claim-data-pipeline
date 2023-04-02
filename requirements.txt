@@ -1,0 +1,7 @@
+requests==2.25.1
+psycopg2==2.8.6
+
+# For lib/infer.py
+beautifulsoup4==4.9.3
+Pillow==8.4.0
+boto3==1.18.49

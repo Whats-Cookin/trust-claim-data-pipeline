@@ -1,6 +1,6 @@
 import psycopg2
 
-from ..lib.db_config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from lib.db_config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
 # Connect to the PostgreSQL database
 def get_conn():
