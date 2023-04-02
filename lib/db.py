@@ -46,9 +46,6 @@ def insert_data(table, data):
 
 def insert_node(node):
     """Insert a Node into the database."""
-    node_id = get_node_id_by_uri(conn, node['nodeUri'])
-    if node_id:
-        return node_id
     return insert_data(table='Node', data=node)
 
 def insert_edge(edge):
@@ -76,14 +73,14 @@ def get_node_by_uri(node_uri):
         }
     return node_dict
 
-def get_edge_by_endpoints(start_node_id, end_node_id):
+def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
     """Retrieve an Edge from the database by the IDs of its start and end Nodes."""
     select_edge_sql = """
         SELECT id, startNodeId, endNodeId, label, thumbnail, claimId
         FROM Edge
-        WHERE startNodeId = %s AND endNodeId = %s;
+        WHERE startNodeId = %s AND endNodeId = %s AND claimId = %s;
     """
-    row = execute_sql_query(select_edge_sql, (start_node_id, end_node_id))
+    row = execute_sql_query(select_edge_sql, (start_node_id, end_node_id, claim_id))
     if row is None:
         return None
 
