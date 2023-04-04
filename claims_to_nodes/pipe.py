@@ -39,7 +39,8 @@ def get_or_create_edge(start_node, end_node, label, claim_id):
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
         # Create or update the nodes dictionary
-        subject_node = add_or_create_node(claim['subject'], raw_claim)
+        import pdb; pdb.set_trace()
+        subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
         object_node = None
 
         object_uri = raw_claim['object']
@@ -63,12 +64,12 @@ def process_unprocessed():
                 source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
             # Create the claim node
-            claim_uri = row['claimAddress']
+            claim_uri = raw_claim['claimAddress']
             claim_node = get_or_create_node(claim_uri, claim, {
                 "nodeUri": claim_uri,
-                "name": claim['claim'], 
+                "name": raw_claim['claim'], 
                 "entType": "Claim",
-                "descrip": row['statement']  # TODO use the other fields too
+                "descrip": raw_claim['statement']  # TODO use the other fields too
             })
         
             # Create the edge from the subject node to the claim node
