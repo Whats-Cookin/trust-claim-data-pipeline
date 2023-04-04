@@ -10,12 +10,14 @@ def construct_uri(word, issuer_id='anon'):
 # if its a valid uri or has a valid http or https return that
 def normalize_uri(uri, issuer_id=None):
     # Parse the URL and lowercase the domain name
-    parsed_url = urlparse(url)
+    parsed_url = urlparse(uri)
     domain = parsed_url.netloc.lower()
     path = parsed_url.path
 
     # Add the http or https prefix if necessary
-    if not parsed_url.scheme:
+    if parsed_url.schema:
+        scheme = parsed_url.schema
+    elif domain:
         # Check if the URL is valid and add the https prefix if it is
         response = requests.get(f"https://{domain}{path}")
         if response.ok:
@@ -25,7 +27,7 @@ def normalize_uri(uri, issuer_id=None):
         else:
             return(construct_uri(uri))
     else:
-        scheme = parsed_url.scheme
+        return uri
 
     # Construct the normalized URL and return it
     normalized_url = urlunparse((scheme, domain, path, "", "", ""))

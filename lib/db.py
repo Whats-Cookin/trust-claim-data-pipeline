@@ -38,12 +38,17 @@ def execute_sql_query(query, params):
         cur.execute(query, params)
         result = cur.fetchone()
         conn.commit()
-        return result
+        if result is not None:
+            col_names = [desc[0] for desc in cur.description]
+            return dict(zip(col_names, result))
+        else:
+            return None
 
 def insert_data(table, data):
     conn = get_conn()
-    query = f"INSERT INTO {table} ({', '.join(data.keys())}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
-    return execute_sql_query(conn, query, tuple(data.values()))[0]
+    quoted_keys = ['\"' + key + '\"' for key in data.keys()]
+    query = f"INSERT INTO \"{table}\" ({', '.join(quoted_keys)}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
+    return execute_sql_query(query, tuple(data.values()))[0]
 
 def insert_node(node):
     """Insert a Node into the database."""
@@ -56,9 +61,9 @@ def insert_edge(edge):
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
     select_node_sql = """
-        SELECT id, nodeUri, name, entType, descrip, image, thumbnail
-        FROM Node
-        WHERE nodeUri = %s;
+        SELECT id, \"nodeUri\", name, \"entType\", descrip, image, thumbnail
+        FROM \"Node\"
+        WHERE \"nodeUri\" = %s;
     """
     row = execute_sql_query(select_node_sql, (node_uri,))
     if row is None:
@@ -77,9 +82,9 @@ def get_node_by_uri(node_uri):
 def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
     """Retrieve an Edge from the database by the IDs of its start and end Nodes."""
     select_edge_sql = """
-        SELECT id, startNodeId, endNodeId, label, thumbnail, claimId
-        FROM Edge
-        WHERE startNodeId = %s AND endNodeId = %s AND claimId = %s;
+        SELECT id, \"startNodeId\", \"endNodeId\", label, thumbnail, \"claimId\"
+        FROM \"Edge\"
+        WHERE \"startNodeId\" = %s AND \"endNodeId\" = %s AND \"claimId\" = %s;
     """
     row = execute_sql_query(select_edge_sql, (start_node_id, end_node_id, claim_id))
     if row is None:

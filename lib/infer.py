@@ -1,15 +1,35 @@
 # infer the name and thumbnail image from uri
 
+from bs4 import BeautifulSoup
 from io import BytesIO
 from PIL import Image
 import boto3
 from .config import S3_BUCKET
+import requests
+from selenium import webdriver
+from pyvirtualdisplay import Display
 
+def open_display():
+    # Set up a virtual display using Xvfb
+    display = Display(visible=0, size=(800, 600))
+    display.start()
+
+    # Set up the Selenium web driver with headless options
+    options = webdriver.ChromeOptions()
+    options.add_argument('headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    driver = webdriver.Chrome(options=options)
+    return (display, driver)
+
+def close_display(display, driver):
+    # Terminate the Xvfb instance
+    display.stop()
+
+    # Quit the Selenium driver
+    driver.quit()
 
 def infer_details(uri, save_thumbnail=False):
-
-    # Set the desired thumbnail size
-    thumbnail_size = (200, 200)
 
     # Get the webpage content
     response = requests.get(uri)
@@ -47,22 +67,29 @@ def infer_details(uri, save_thumbnail=False):
     if not save_thumbnail:
         return (name, None)
 
+    (display, driver) = open_display()
+
+    # Set the desired thumbnail size
+    thumbnail_size = (200, 200)
+
     # Create a thumbnail of the webpage
-    if content is not None:
+    driver.get(uri)
+    screenshot = driver.get_screenshot_as_png()
+    if screenshot is not None:
         # Open the image using PIL
-        img = Image.open(BytesIO(content))
+        img = Image.open(BytesIO(screenshot))
 
         # Create the thumbnail
         img.thumbnail(thumbnail_size)
 
         # Save the thumbnail to a BytesIO object
         thumbnail_io = BytesIO()
-        img.save(thumbnail_io, format='JPEG')
+        img.save(thumbnail_io, format='PNG')
 
         # Store the thumbnail to S3
         s3 = boto3.resource('s3')
         bucket = s3.Bucket(S3_BUCKET)
-        object_key = 'thumbnails/' + uri.replace('/', '_') + '.jpg'
+        object_key = 'thumbnails/' + uri.replace('/', '_') + '.png'
         bucket.put_object(Key=object_key, Body=thumbnail_io.getvalue())
 
         # Get the URL to the stored thumbnail
@@ -73,5 +100,6 @@ def infer_details(uri, save_thumbnail=False):
                 'Key': object_key,
             }
         )
-
+        print("Saved image to : " + thumbnail_url)
+        close_display(display, driver)
         return(name, thumbnail_url)

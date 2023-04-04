@@ -5,3 +5,5 @@ psycopg2==2.8.6
 beautifulsoup4==4.9.3
 Pillow==8.4.0
 boto3==1.18.49
+PyVirtualDisplay==3.0
+selenium==4.8.3
