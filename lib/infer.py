@@ -32,7 +32,12 @@ def close_display(display, driver):
 def infer_details(uri, save_thumbnail=False):
 
     # Get the webpage content
-    response = requests.get(uri)
+    try:
+        response = requests.get(uri)
+    except:
+        print("Cannot retrieve url: " + uri)
+        return(uri, None)
+
     content = response.content
 
     # Parse the webpage content using Beautiful Soup
@@ -40,10 +45,11 @@ def infer_details(uri, save_thumbnail=False):
 
     # Get the title tag from the HTML
     title_tag = soup.title
+    name = None
 
     # Try to get the text content of the title tag
     title_tag = soup.title
-    if title_tag is not None:
+    if title_tag is not None and title_tag.string:
         name = title_tag.string.strip()
 
     # If the title tag is not found or has no text content, try the first h1 tag

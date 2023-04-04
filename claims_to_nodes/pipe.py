@@ -1,5 +1,5 @@
 from lib.cleaners import normalize_uri
-from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node
+from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
@@ -35,7 +35,19 @@ def get_or_create_edge(start_node, end_node, label, claim_id):
         edge['id'] = insert_edge(edge)
     # TODO check for consistency with existing edge
     return edge     
-     
+
+def make_description(raw_claim):
+    descrip = ''
+    if raw_claim['score']:
+       descrip += "{} score: {:.2%}".format(raw_claim.get('aspect',''), raw_claim['score'])
+
+    if raw_claim['stars']:
+       descrip += "{} out of 5".format(raw_claim['stars'])
+
+    if raw_claim['statement']:
+       descrip += "\n" + raw_claim['statement']
+    return descrip
+
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
         # Create or update the nodes dictionary
@@ -57,22 +69,23 @@ def process_unprocessed():
         # there is no object, so the point is to attach the claim to the subject
         # in this case we make a claim node and also attach the source
         else:
-     
+            source_node = None 
             source_uri = raw_claim['sourceURI'] 
             if source_uri is not None:
                 source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
             # Create the claim node
-            claim_uri = raw_claim['claimAddress']
+            claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
             claim_node = get_or_create_node(claim_uri, raw_claim, {
                 "nodeUri": claim_uri,
                 "name": raw_claim['claim'], 
-                "entType": "Claim",
-                "descrip": raw_claim['statement']  # TODO use the other fields too
+                "entType": "CLAIM",
+                "descrip": make_description(raw_claim)
             })
         
             # Create the edge from the subject node to the claim node
             get_or_create_edge(subject_node, claim_node, raw_claim['claim'], raw_claim['id'])
            
             # create the edge from the claim node to the source node
-            get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])
+            if source_node:
+                get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])

@@ -15,8 +15,8 @@ def normalize_uri(uri, issuer_id=None):
     path = parsed_url.path
 
     # Add the http or https prefix if necessary
-    if parsed_url.schema:
-        scheme = parsed_url.schema
+    if parsed_url.scheme:
+        scheme = parsed_url.scheme
     elif domain:
         # Check if the URL is valid and add the https prefix if it is
         response = requests.get(f"https://{domain}{path}")

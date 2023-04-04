@@ -48,7 +48,7 @@ def insert_data(table, data):
     conn = get_conn()
     quoted_keys = ['\"' + key + '\"' for key in data.keys()]
     query = f"INSERT INTO \"{table}\" ({', '.join(quoted_keys)}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
-    return execute_sql_query(query, tuple(data.values()))[0]
+    return execute_sql_query(query, tuple(data.values()))['id']
 
 def insert_node(node):
     """Insert a Node into the database."""
