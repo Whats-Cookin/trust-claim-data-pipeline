@@ -1,6 +1,6 @@
 import psycopg2
 
-from lib.db_config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from lib.config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
 # Connect to the PostgreSQL database
 def get_conn():
@@ -8,7 +8,7 @@ def get_conn():
     try:
         # check if conn is open
         conn.status
-    except (AttributeError, psycopg2.OperationalError):
+    except (NameError, AttributeError, psycopg2.OperationalError):
         # conn is closed or doesn't exist yet
         conn = psycopg2.connect(
             database=DB_NAME,

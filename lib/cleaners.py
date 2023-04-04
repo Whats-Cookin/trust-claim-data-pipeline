@@ -20,7 +20,7 @@ def normalize_uri(uri, issuer_id=None):
         response = requests.get(f"https://{domain}{path}")
         if response.ok:
             scheme = "https"
-        elsif (requests.get(f"http://{domain}{path}").ok):
+        elif (requests.get(f"http://{domain}{path}").ok):
             scheme = "http"
         else:
             return(construct_uri(uri))
