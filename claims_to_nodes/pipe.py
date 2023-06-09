@@ -1,3 +1,4 @@
+import re
 from lib.cleaners import normalize_uri
 from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
 from lib.infer import infer_details
@@ -48,16 +49,21 @@ def make_description(raw_claim):
        descrip += "\n" + raw_claim['statement']
     return descrip
 
+def is_uri(string):
+    pattern = re.compile(r'^(?:\w+:)?//([^\s/$.?#].[^\s]*)?$')
+    return bool(re.match(pattern, string))
+
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
         # Create or update the nodes dictionary
+        if not is_uri(raw_claim['subject']):
+            continue
         subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
         object_node = None
-
         object_uri = raw_claim['object']
-        if object_uri is not None:
+        if object_uri:
             object_node = get_or_create_node(raw_claim['object'], raw_claim) 
-      
+            print("Object not source: " + object_uri) 
         # if there is an object, the claim is just the relationship between the subject and object
         # likely something like "same_as" or "works_for"
         # currently we do not create a claim node for relationship claims

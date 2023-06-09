@@ -23,7 +23,7 @@ def unprocessed_claims_generator():
     with get_conn().cursor() as cur:
         # Read data from the Claim model
         # TODO track last date and only process new claims
-        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" ")
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" where \"createdAt\" > '2023-06-06 09:00:00' ")
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
