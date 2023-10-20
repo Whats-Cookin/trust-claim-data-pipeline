@@ -76,7 +76,7 @@ def main():
     rating = settings.get("rating")
     source = settings.get("source")
     confidence = settings.get("confidence")
-    how_known = settings.get("howknown")
+    how_known = settings.get("howknown")  
 
     if not (filename):
         print_error_and_exit('"filename" is a required field')
