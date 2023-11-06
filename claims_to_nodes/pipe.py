@@ -3,7 +3,7 @@ from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_en
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
-
+    print("IN CREATE for " + node_uri)
     node_uri = normalize_uri(node_uri, raw_claim['issuerId'])
     node = get_node_by_uri(node_uri)
     if node is None:
@@ -19,6 +19,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
             }
         else:
             node = new_node
+        print("INSERTING " + node['nodeUri'])
         node['id'] = insert_node(node)
     # TODO possibly update the node if exists
     return node 
@@ -51,11 +52,13 @@ def make_description(raw_claim):
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
         # Create or update the nodes dictionary
+        print("On claim:" + raw_claim['subject'])
         subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
         object_node = None
 
         object_uri = raw_claim['object']
         if object_uri is not None:
+            print("creating for object: " + raw_claim['object'])
             object_node = get_or_create_node(raw_claim['object'], raw_claim) 
       
         # if there is an object, the claim is just the relationship between the subject and object
