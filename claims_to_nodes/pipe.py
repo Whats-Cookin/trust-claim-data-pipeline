@@ -3,7 +3,7 @@ from lib.db import get_claim, unprocessed_claims_generator, get_node_by_uri, get
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
-    print("IN CREATE for " + node_uri)
+    print("IN GET OR CREATE for " + node_uri)
     node_uri = normalize_uri(node_uri, raw_claim['issuerId'])
     node = get_node_by_uri(node_uri)
     if node is None:
@@ -25,6 +25,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     return node 
 
 def get_or_create_edge(start_node, end_node, label, claim_id):
+    print("IN GET OR CREATE EDGE for {}".format(claim_id))
     edge = get_edge_by_endpoints(start_node['id'], end_node['id'], claim_id)
     if edge is None:
         edge = {
@@ -56,7 +57,7 @@ def process_unprocessed():
 def process_targeted(claim_id):
     # get claim by id
     raw_claim = get_claim(claim_id) 
-    proces_claim(raw_claim)
+    process_claim(raw_claim)
 
 def process_claim(raw_claim):
         # Create or update the nodes dictionary

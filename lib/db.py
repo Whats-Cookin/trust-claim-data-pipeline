@@ -25,7 +25,7 @@ def get_claim(claim_id):
         cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE id = {}".format(claim_id))
         columns = [desc[0] for desc in cur.description]
         row = cur.fetchone()
-        return dict(zip(columns, row)
+        return dict(zip(columns, row))
 
 def unprocessed_claims_generator():
     with get_conn().cursor() as cur:
