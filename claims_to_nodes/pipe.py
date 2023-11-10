@@ -1,5 +1,5 @@
 from lib.cleaners import normalize_uri
-from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
+from lib.db import get_claim, unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
@@ -51,6 +51,14 @@ def make_description(raw_claim):
 
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
+        process_claim(raw_claim)
+
+def process_targeted(claim_id):
+    # get claim by id
+    raw_claim = get_claim(claim_id) 
+    proces_claim(raw_claim)
+
+def process_claim(raw_claim):
         # Create or update the nodes dictionary
         print("On claim:" + raw_claim['subject'])
         subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
