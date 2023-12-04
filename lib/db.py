@@ -66,6 +66,15 @@ def execute_sql_query(query, params):
         else:
             return None
 
+def update_claim_address(claim_id, claim_address):
+    """ Update the claimAddress field of a claim """
+    if not claim_id:
+        raise Exception("Cannot update without a claim id")
+    query = f"UPDATE \"Claim\" set \"claimAddress\" = '{claim_address}' where id = {claim_id}"
+    with get_conn().cursor() as cur:
+        cur.execute(query)
+        conn.commit()
+
 def insert_data(table, data):
     conn = get_conn()
     quoted_keys = ['\"' + key + '\"' for key in data.keys()]
