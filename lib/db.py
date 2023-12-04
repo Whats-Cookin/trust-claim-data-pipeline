@@ -19,11 +19,33 @@ def get_conn():
         )
     return conn
 
+def get_claim(claim_id):
+    with get_conn().cursor() as cur:
+        # Read data from the Claim model
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE id = {}".format(claim_id))
+        columns = [desc[0] for desc in cur.description]
+        row = cur.fetchone()
+        return dict(zip(columns, row))
+
 def unprocessed_claims_generator():
     with get_conn().cursor() as cur:
         # Read data from the Claim model
         # TODO track last date and only process new claims
         cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE \"createdAt\" > current_timestamp - interval '600 minutes'")
+        columns = [desc[0] for desc in cur.description]
+        while True:
+            rows = cur.fetchmany()
+            if not rows:
+                break
+            for row in rows:
+                yield dict(zip(columns, row)) 
+
+def unpublished_claims_generator():
+    with get_conn().cursor() as cur:
+        # Read data from the Claim model
+        # TODO track last date and only process new claims
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE \"claimAddress\" is NULL or \"claimAddress\" = ''")
+        # could refactor this section with above function
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
@@ -43,6 +65,15 @@ def execute_sql_query(query, params):
             return dict(zip(col_names, result))
         else:
             return None
+
+def update_claim_address(claim_id, claim_address):
+    """ Update the claimAddress field of a claim """
+    if not claim_id:
+        raise Exception("Cannot update without a claim id")
+    query = f"UPDATE \"Claim\" set \"claimAddress\" = '{claim_address}' where id = {claim_id}"
+    with get_conn().cursor() as cur:
+        cur.execute(query)
+        conn.commit()
 
 def insert_data(table, data):
     conn = get_conn()
