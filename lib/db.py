@@ -19,11 +19,37 @@ def get_conn():
         )
     return conn
 
+def get_claim(claim_id):
+    with get_conn().cursor() as cur:
+        # Read data from the Claim model
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE id = {}".format(claim_id))
+        columns = [desc[0] for desc in cur.description]
+        row = cur.fetchone()
+        return dict(zip(columns, row))
+
 def unprocessed_claims_generator():
+    with get_conn().cursor() as cur:
+        # find latest processed claim
+        QUERY_LATEST_CLAIMID = 'SELECT MAX("claimId") FROM "Edge"'
+        cur.execute(QUERY_LATEST_CLAIMID)
+        latest_claimid = cur.fetchone()[0]
+        # Read data from the Claim model
+        # TODO track last date and only process new claims
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE id > {}".format(latest_claimid))
+        columns = [desc[0] for desc in cur.description]
+        while True:
+            rows = cur.fetchmany()
+            if not rows:
+                break
+            for row in rows:
+                yield dict(zip(columns, row)) 
+
+def unpublished_claims_generator():
     with get_conn().cursor() as cur:
         # Read data from the Claim model
         # TODO track last date and only process new claims
-        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" ")
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE \"claimAddress\" is NULL or \"claimAddress\" = ''")
+        # could refactor this section with above function
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
@@ -44,11 +70,23 @@ def execute_sql_query(query, params):
         else:
             return None
 
+def update_claim_address(claim_id, claim_address):
+    """ Update the claimAddress field of a claim """
+    if not claim_id:
+        raise Exception("Cannot update without a claim id")
+    query = f"UPDATE \"Claim\" set \"claimAddress\" = '{claim_address}' where id = {claim_id}"
+    with get_conn().cursor() as cur:
+        cur.execute(query)
+        conn.commit()
+
 def insert_data(table, data):
     conn = get_conn()
     quoted_keys = ['\"' + key + '\"' for key in data.keys()]
     query = f"INSERT INTO \"{table}\" ({', '.join(quoted_keys)}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
-    return execute_sql_query(query, tuple(data.values()))['id']
+    try:
+        return execute_sql_query(query, tuple(data.values()))['id']
+    except:
+        import pdb; pdb.set_trace()
 
 def insert_node(node):
     """Insert a Node into the database."""
@@ -65,8 +103,12 @@ def get_node_by_uri(node_uri):
         FROM \"Node\"
         WHERE \"nodeUri\" = %s;
     """
-    row = execute_sql_query(select_node_sql, (node_uri,))
+    try:
+        row = execute_sql_query(select_node_sql, (node_uri,))
+    except:
+        import pdb ; pdb.set_trace()
     if row is None:
+        print("{} not found in db".format(node_uri))
         return None
     node_dict = {
             'id': row['id'],
