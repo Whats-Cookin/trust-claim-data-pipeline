@@ -77,7 +77,7 @@ def main():
     fixed_source = settings.get("source")
     source_from_csv_header = settings.get("source_from_csv_header")
     confidence = settings.get("confidence")
-    how_known = settings.get("howknown")
+    how_known = settings.get("howknown")  
 
     if not (filename):
         print_error_and_exit('"filename" is a required field')

@@ -1,6 +1,4 @@
 import requests 
-
-import requests
 import json
 import sys
 
@@ -11,7 +9,7 @@ num_claims = 0
 
 outfile = 'raw_claims.csv'
 to_process = []
-already_processed = []
+already_processed = [] 
 
 def get_content(uri):
     response = requests.get(uri)
