@@ -39,18 +39,17 @@ def make_compose_json(raw_claim):
         how_known = raw_claim.get('howKnown', 'WEB_DOCUMENT')
         compose_json['source'] = { "howKnown": how_known, "sourceID":raw_claim['source']}
 
-    if raw_claim.get('aspect') or raw_claim.get('score') or raw_claim.get('stars'):
+    if raw_claim.get('score') or raw_claim.get('stars'):
         compose_json['rating'] = {k:raw_claim[k] for k in ('aspect', 'stars', 'score') if raw_claim.get(k)}
         score = compose_json['rating'].get('score')
         if score and score > 1:
             compose_json['rating']['score'] = 1
         if score and score < -1:
             compose_json['rating']['score'] = -1
+
+        # score is required
         if score is None:
-            if compose_json['rating'].get('stars'):
-                compose_json['rating']['score'] = compose_json['rating']['stars']/5.0
-            else:
-                compose_json['score'] = 0
+            compose_json['rating']['score'] = compose_json['rating']['stars']/5.0
 
     if 'effectiveDate' not in compose_json:
         compose_json['effectiveDate'] = datetime.datetime.today().strftime("%Y-%m-%d")
