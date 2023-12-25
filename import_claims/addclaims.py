@@ -73,7 +73,9 @@ def main():
     statement_from_csv_header = settings.get("statement_from_csv_header")
     claim = settings.get("claim")
     aspect = settings.get("aspect")
-    rating = settings.get("rating")
+
+    # note in this version rating is NOT handled
+
     fixed_source = settings.get("source")
     source_from_csv_header = settings.get("source_from_csv_header")
     confidence = settings.get("confidence")
@@ -116,7 +118,7 @@ def main():
             if obj and not obj_is_url:
                 obj = "http://trustclaims.whatscookin.us/local/company/" + urllib.parse.quote(obj)
 
-            stmt = statement or row.get(statement_from_csv_header, '')
+            stmt = row.get(statement_from_csv_header, '') or statement
             issuer_id = f"http://trustclaims.whatscookin.us/users/{spider_id}"
 
             values.append((sub, obj, stmt, claim, aspect, how_known,
