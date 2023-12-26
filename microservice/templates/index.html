@@ -50,6 +50,9 @@
     <div class="form-box">
       <h1>Process Input</h1>
       <form id="inputForm" method="POST" action="/process_raw_claim">
+        <!-- The ID field (hidden) -->
+        <input type="hidden" name="id" id="idInput">
+
         <label for="subject">Subject:</label>
         <input type="text" name="subject" id="subjectInput">
 
@@ -106,7 +109,12 @@
     function handleFormSubmit(event) {
       event.preventDefault();
 
+      // Generate a unique ID (you can use any suitable method to generate IDs)
+      // const generatedId = generateUniqueId();
+
       // Get the input values
+      // Set the value of the hidden ID input field
+      // const idInput = document.getElementById('idInput');
       const subjectInput = document.getElementById('subjectInput');
       const claimInput = document.getElementById('claimInput');
       const howKnownInput = document.getElementById('howKnownInput');
@@ -117,6 +125,7 @@
       const starsInput = document.getElementById('starsInput');
       const effectiveDateInput = document.getElementById('effectiveDateInput');
 
+      // const id = idInput.value;
       const subject = subjectInput.value;
       const claim = claimInput.value;
       const howKnown = howKnownInput.value;

@@ -1,4 +1,5 @@
 import psycopg2
+import logging
 
 from lib.config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
@@ -24,6 +25,7 @@ def unprocessed_claims_generator():
         # Read data from the Claim model
         # TODO track last date and only process new claims
         cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" ")
+                    
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
@@ -100,4 +102,24 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
         }
     return edge_dict
 
+def insert_claim(claim):
+    try:
+        with get_conn().cursor() as cursor:
+            columns = ["subject", "claim", "statement", "effective_date", "sourceURI", "how_known",
+                       "aspect", "score", "stars", "confidence", "dateObserved", "digestMultibase",
+                       "author", "curator", "amt", "unit", "howMeasured", "intendedAudience",
+                       "respondAt", "issuerId", "issuerIdType", "claimAddress", "proof"]
 
+            values = [claim.get(key) for key in columns]
+
+            query = f"""
+                INSERT INTO "Claim" ({', '.join(columns)})
+                VALUES ({', '.join(['%s'] * len(columns))})
+            """
+
+            cursor.execute(query, values)
+            get_conn().commit()
+
+    except Exception as e:
+        logging.error(f"Error inserting claim: {str(e)}")
+        raise

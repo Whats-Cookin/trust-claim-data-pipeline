@@ -1,4 +1,4 @@
-from .pipe import process_single_claim
+from ..claims_to_nodes.pipe import process_single_claim
 from flask import Flask, request, render_template, jsonify
 
 app = Flask(__name__, template_folder='templates')
@@ -22,7 +22,6 @@ def process_raw_claim():
         score =  int(confidence)//100 #this is just a test logic to fill in the score
 
         raw_claim = {
-            'id': 1,  # a fixed id for claim. TODO To be fixed later
             'subject': subject,
             'claim': claim,
             'how_known': how_known,
@@ -36,7 +35,7 @@ def process_raw_claim():
         }
 
         process_single_claim(raw_claim)
-
+        print(id)
         return jsonify({'status': 'success', 'message': 'Input processed successfully'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
