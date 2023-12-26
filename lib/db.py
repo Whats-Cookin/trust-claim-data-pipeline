@@ -142,4 +142,17 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
         }
     return edge_dict
 
+def del_claim(claim_id):
+    if not claim_id:
+        raise("A non-zero non-null claim id is required")
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        # delete the edges related to the claim
+        cur.execute('delete from "Edge" where "claimId" = {}'.format(claim_id))
+
+        cur.execute('delete from "Claim" where id = {}'.format(claim_id))
+        conn.commit()
+         
+        return
 
