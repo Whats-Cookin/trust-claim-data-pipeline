@@ -142,4 +142,12 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
         }
     return edge_dict
 
+def del_claim(claim_id):
+    with get_conn().cursor() as cur:
+        # delete the edges related to the claim
+        cur.execute('delete from "Edge" where "claimId" = {} limit 1'.format(claim_id))
+
+        cur.execute('delete from "Claim" where id = {} limit 1'.format(claim_id))
+
+        return
 
