@@ -9,7 +9,7 @@ def main():
         print("Please provide a list of integer claim ids to delete.")
         return
         
-    ok = input("Will delete claims {}, proceed?".format(numbers))
+    ok = input("Will delete claims {}, proceed? ".format(numbers))
     if ok.lower() != 'y':
         return
 
