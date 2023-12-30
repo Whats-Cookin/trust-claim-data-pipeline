@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY crontab.dev /etc/cron.d/my-crontab
 RUN chmod 0644 /etc/cron.d/my-crontab
 RUN crontab /etc/cron.d/my-crontab
+RUN cron
 
 # for the microservice
 EXPOSE 5000
@@ -22,7 +23,8 @@ EXPOSE 5000
 # this will not work locally without them, it needs a postgres database
 # the docker compose file is in https://github.com/Whats-Cookin/trust_claim_backend
 
-CMD cron 
+# for now just keep running to run crontab
+CMD while true; do sleep 1000; done
 # TODO when we have microservice start it here like
-# CMD cron && python ./app.py
+# CMD python ./app.py
 
