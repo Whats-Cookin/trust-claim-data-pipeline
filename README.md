@@ -1,5 +1,8 @@
 
-# Spider Prod Repo
+# Data Pipelines for Trust Claims
+
+This repo includes code for spidering and importing claims, and ALSO for processing 
+new claims entered by users.
 
 python code to run separate steps of the pipeline, and later maybe to orchestrate
 
