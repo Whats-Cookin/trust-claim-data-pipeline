@@ -1,13 +1,13 @@
+import re
 from lib.cleaners import normalize_uri
-from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge, get_claim
+
+from lib.db import get_claim, unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
+    print("IN GET OR CREATE for " + node_uri)
+    node_uri = normalize_uri(node_uri, raw_claim['issuerId'])
 
-    node_uri = normalize_uri(node_uri, 
-                            #  raw_claim['issuerId']
-                             raw_claim.get('issuerId', 1)
-                             )
     node = get_node_by_uri(node_uri)
     if node is None:
         if new_node is None:
@@ -22,11 +22,13 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
             }
         else:
             node = new_node
+        print("INSERTING " + node['nodeUri'])
         node['id'] = insert_node(node)
     # TODO possibly update the node if exists
     return node 
 
 def get_or_create_edge(start_node, end_node, label, claim_id):
+    print("IN GET OR CREATE EDGE for {}".format(claim_id))
     edge = get_edge_by_endpoints(start_node['id'], end_node['id'], claim_id)
     if edge is None:
         edge = {
@@ -50,6 +52,10 @@ def make_description(raw_claim):
     if raw_claim['statement']:
        descrip += "\n" + raw_claim['statement']
     return descrip
+
+def is_uri(string):
+    pattern = re.compile(r'^(?:\w+:)?//([^\s/$.?#].[^\s]*)?$')
+    return bool(re.match(pattern, string))
 
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():

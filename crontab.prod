@@ -1,0 +1,1 @@
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /data/trust-claim-data-pipeline ; . penv/bin/activate ; python3 run_pipe.py
