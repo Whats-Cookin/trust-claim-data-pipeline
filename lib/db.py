@@ -1,4 +1,5 @@
 import psycopg2
+import logging
 
 from lib.config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
@@ -48,8 +49,8 @@ def unpublished_claims_generator():
     with get_conn().cursor() as cur:
         # Read data from the Claim model
         # TODO track last date and only process new claims
-        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE \"claimAddress\" is NULL or \"claimAddress\" = ''")
-        # could refactor this section with above function
+
+        cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" ")
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
@@ -96,6 +97,28 @@ def insert_edge(edge):
     """Insert an Edge into the database."""
     return insert_data(table='Edge', data=edge)
 
+def get_claim(claim_id):
+    with get_conn().cursor() as cursor:
+        query = """
+            SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI",
+            "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score,
+            stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence,
+            "issuerId", "issuerIdType", "claimAddress", proof
+            FROM "Claim"
+            WHERE id = {}
+        """.format(claim_id)
+
+        cursor.execute(query)
+        
+        columns = [desc[0] for desc in cursor.description]
+        row = cursor.fetchone()
+
+        if row is not None:
+            return dict(zip(columns, row))
+        else:
+            return None
+
+
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
     select_node_sql = """
@@ -140,6 +163,7 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
             'thumbnail': row['thumbnail'],
             'claimId': row['claimId']
         }
+
     return edge_dict
 
 def del_claim(claim_id):

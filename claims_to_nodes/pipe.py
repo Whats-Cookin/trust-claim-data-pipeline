@@ -1,11 +1,12 @@
-import re
 from lib.cleaners import normalize_uri
-from lib.db import get_claim, unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
+from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge, get_claim
 from lib.infer import infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
-    print("IN GET OR CREATE for " + node_uri)
-    node_uri = normalize_uri(node_uri, raw_claim['issuerId'])
+
+    node_uri = normalize_uri(node_uri, 
+                             raw_claim['issuerId']
+                             )
     node = get_node_by_uri(node_uri)
     if node is None:
         if new_node is None:
@@ -57,52 +58,52 @@ def is_uri(string):
 
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
-        process_claim(raw_claim)
+        process_single_claim(raw_claim)
 
-def process_targeted(claim_id):
-    # get claim by id
-    raw_claim = get_claim(claim_id) 
+def process_single_claim(claim_id):
+    # get claim by claim's id
+    raw_claim = get_claim(claim_id)
     process_claim(raw_claim)
 
 def process_claim(raw_claim):
-        # Create or update the nodes dictionary
-        if not is_uri(raw_claim['subject']):
-            continue
-        subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
-        object_node = None
-        object_uri = raw_claim['object']
+    # Create or update the nodes dictionary
+    subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
+    object_node = None
 
-        if object_uri:
-            object_node = get_or_create_node(raw_claim['object'], raw_claim) 
-            print("Object not source: " + object_uri) 
-        # if there is an object, the claim is just the relationship between the subject and object
-        # likely something like "same_as" or "works_for"
-        # currently we do not create a claim node for relationship claims
-        if object_node:
-           get_or_create_edge(subject_node, object_node, raw_claim['claim'], raw_claim['id'])
-             
-           # TODO maybe include the source node somehow with this edge; for now the claim itself is enough   
-     
-        # there is no object, so the point is to attach the claim to the subject
-        # in this case we make a claim node and also attach the source
-        else:
-            source_node = None 
-            source_uri = raw_claim['sourceURI'] 
-            if source_uri is not None:
-                source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
+    object_uri = raw_claim['object']
+    if object_uri is not None:
+        object_node = get_or_create_node(raw_claim['object'], raw_claim) 
+    
+    # if there is an object, the claim is just the relationship between the subject and object
+    # likely something like "same_as" or "works_for"
+    # currently we do not create a claim node for relationship claims
+    if object_node:
+        get_or_create_edge(subject_node, object_node, raw_claim['claim'], raw_claim['id'])
+            
+        # TODO maybe include the source node somehow with this edge; for now the claim itself is enough   
+    
+    # there is no object, so the point is to attach the claim to the subject
+    # in this case we make a claim node and also attach the source
+    else:
+        source_node = None 
+        source_uri = raw_claim['sourceURI'] 
+        # Check if source_uri is not None before creating or updating the source_node
+        if source_uri is not None:
+            # Maintain the existing behavior: create or retrieve the source_node
+            source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
-            # Create the claim node
-            claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
-            claim_node = get_or_create_node(claim_uri, raw_claim, {
-                "nodeUri": claim_uri,
-                "name": raw_claim['claim'], 
-                "entType": "CLAIM",
-                "descrip": make_description(raw_claim)
-            })
+        # Create the claim node
+        claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
+        claim_node = get_or_create_node(claim_uri, raw_claim, {
+            "nodeUri": claim_uri,
+            "name": raw_claim['claim'], 
+            "entType": "CLAIM",
+            "descrip": make_description(raw_claim)
+        })
+    
+        # Create the edge from the subject node to the claim node
+        get_or_create_edge(subject_node, claim_node, raw_claim['claim'], raw_claim['id'])
         
-            # Create the edge from the subject node to the claim node
-            get_or_create_edge(subject_node, claim_node, raw_claim['claim'], raw_claim['id'])
-           
-            # create the edge from the claim node to the source node
-            if source_node:
-                get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])
+        # create the edge from the claim node to the source node
+        if source_node:
+            get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])
