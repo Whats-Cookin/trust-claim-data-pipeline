@@ -73,17 +73,20 @@ def main():
     statement_from_csv_header = settings.get("statement_from_csv_header")
     claim = settings.get("claim")
     aspect = settings.get("aspect")
-    rating = settings.get("rating")
-    source = settings.get("source")
+
+    # note in this version rating is NOT handled
+
+    fixed_source = settings.get("source")
+    source_from_csv_header = settings.get("source_from_csv_header")
     confidence = settings.get("confidence")
-    how_known = settings.get("howknown")
+    how_known = settings.get("howknown")  
 
     if not (filename):
         print_error_and_exit('"filename" is a required field')
     if not (subject or subject_from_csv_header):
         print_error_and_exit('Either "subject" or "subject_from_csv_header" field is required')
-    if not (claim_object or object_from_csv_header):
-        print_error_and_exit('Either "object" or "object_from_csv_header" field is required')
+    if not (claim_object or object_from_csv_header or fixed_source or source_from_csv_header):
+        print_error_and_exit('Either "object" or "object_from_csv_header" or "source" field is required')
     if not (claim):
         print_error_and_exit('"claim" is a required field')
 
@@ -95,13 +98,17 @@ def main():
         print_error_and_exit(f"{str(e)}")
 
     spider = db_get_one("""SELECT * FROM "User" WHERE name='SPIDER'""")
-    spider_id = spider[0]
+    if spider:
+       spider_id = spider[0]
+    else:
+       spider_id = 1
 
     values = []
     for _, row in df.iterrows():
         try:
             sub = subject or row[subject_from_csv_header]
             obj = claim_object or row.get(object_from_csv_header)
+            source = fixed_source or row.get(source_from_csv_header)
             if obj:
                obj_is_url = validators.url(obj)
             else:
@@ -111,17 +118,15 @@ def main():
             if obj and not obj_is_url:
                 obj = "http://trustclaims.whatscookin.us/local/company/" + urllib.parse.quote(obj)
 
-            stmt = statement or row[statement_from_csv_header]
+            stmt = row.get(statement_from_csv_header, '') or statement
             issuer_id = f"http://trustclaims.whatscookin.us/users/{spider_id}"
 
             values.append((sub, obj, stmt, claim, aspect, how_known,
-                           rating, source, confidence, spider_id, issuer_id, 'URL'))
-
+                           source, confidence, issuer_id, 'URL'))
         except Exception as e:
             print("Error, ", type(e))
 
-    query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", "reviewRating", source, confidence, "userId", "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-
+    query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     db_post_many(query, values)
 
 

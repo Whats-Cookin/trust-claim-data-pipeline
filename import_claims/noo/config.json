@@ -11,6 +11,7 @@
   "aspect": "trust",
   "howknown": "WEB_DOCUMENT",
   "score": 1.0,
+  "source": "",
   "source_from_csv_header": "source",
   "confidence": 0.9
 }

@@ -1,14 +1,15 @@
 import requests 
-
-import requests
 import json
 import sys
 
 import csv
 
+MAX_CLAIMS = 10
+num_claims = 0
+
 outfile = 'raw_claims.csv'
 to_process = []
-already_processed = []
+already_processed = [] 
 
 def get_content(uri):
     response = requests.get(uri)
@@ -51,6 +52,9 @@ if __name__ == "__main__":
        content = get_content(uri)
        process_content(content, uri)
        already_processed.append(uri)
+       num_claims += 1
+       if num_claims > MAX_CLAIMS:
+         break
 
     print(json.dumps(content, indent=4))
 
