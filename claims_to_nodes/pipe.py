@@ -7,8 +7,7 @@ from lib.infer import infer_details
 def get_or_create_node(node_uri, raw_claim, new_node=None):
 
     node_uri = normalize_uri(node_uri, 
-                            #  raw_claim['issuerId']
-                             raw_claim.get('issuerId', 1)
+                             raw_claim['issuerId']
                              )
     node = get_node_by_uri(node_uri)
     if node is None:
@@ -88,8 +87,6 @@ def process_claim(raw_claim):
         if source_uri is not None:
             # Maintain the existing behavior: create or retrieve the source_node
             source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
-        else:
-            error_and_exit()
 
         # Create the claim node
         claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
@@ -106,7 +103,3 @@ def process_claim(raw_claim):
         # create the edge from the claim node to the source node
         if source_node:
             get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])
-
-def error_and_exit():
-    logging.error("An error occured")
-    sys.exit()
