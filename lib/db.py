@@ -60,6 +60,28 @@ def insert_edge(edge):
     """Insert an Edge into the database."""
     return insert_data(table='Edge', data=edge)
 
+def get_claim(claim_id):
+    with get_conn().cursor() as cursor:
+        query = """
+            SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI",
+            "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score,
+            stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence,
+            "issuerId", "issuerIdType", "claimAddress", proof
+            FROM "Claim"
+            WHERE id = {}
+        """.format(claim_id)
+
+        cursor.execute(query)
+        
+        columns = [desc[0] for desc in cursor.description]
+        row = cursor.fetchone()
+
+        if row is not None:
+            return dict(zip(columns, row))
+        else:
+            return None
+
+
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
     select_node_sql = """
@@ -101,25 +123,3 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
             'claimId': row['claimId']
         }
     return edge_dict
-
-def insert_claim(claim):
-    try:
-        with get_conn().cursor() as cursor:
-            columns = ["subject", "claim", "statement", "effective_date", "sourceURI", "how_known",
-                       "aspect", "score", "stars", "confidence", "dateObserved", "digestMultibase",
-                       "author", "curator", "amt", "unit", "howMeasured", "intendedAudience",
-                       "respondAt", "issuerId", "issuerIdType", "claimAddress", "proof"]
-
-            values = [claim.get(key) for key in columns]
-
-            query = f"""
-                INSERT INTO "Claim" ({', '.join(columns)})
-                VALUES ({', '.join(['%s'] * len(columns))})
-            """
-
-            cursor.execute(query, values)
-            get_conn().commit()
-
-    except Exception as e:
-        logging.error(f"Error inserting claim: {str(e)}")
-        raise
