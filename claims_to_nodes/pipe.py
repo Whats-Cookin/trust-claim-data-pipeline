@@ -1,5 +1,3 @@
-import sys
-import logging
 from lib.cleaners import normalize_uri
 from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge, get_claim
 from lib.infer import infer_details

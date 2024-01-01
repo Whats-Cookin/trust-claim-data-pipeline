@@ -38,6 +38,13 @@ def infer_details(uri, save_thumbnail=False):
         print("Cannot retrieve url: " + uri)
         return(uri, None)
 
+    try:
+      jc = response.json()
+      if jc:
+         return (jc.get('name'), jc.get('image'))
+    except Exception as e:
+      print("Its not json")
+
     content = response.content
 
     # Parse the webpage content using Beautiful Soup

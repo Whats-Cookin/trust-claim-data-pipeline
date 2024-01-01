@@ -1,4 +1,10 @@
 .env
 *.swp
 __pycache__
+
+import_claims/hypercerts/config.json
+import_claims/hypercerts/hypercert-claim-data.csv
+.gitignore
 venv
+.env
+import_claims/.DS_Store
