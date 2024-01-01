@@ -76,7 +76,10 @@ def get_claim(claim_id):
         columns = [desc[0] for desc in cursor.description]
         row = cursor.fetchone()
 
-        return dict(zip(columns, row))
+        if row is not None:
+            return dict(zip(columns, row))
+        else:
+            return None
 
 
 def get_node_by_uri(node_uri):

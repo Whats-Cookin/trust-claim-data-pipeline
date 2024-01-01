@@ -1,10 +1,4 @@
-microservice/pipe.py
 .env
 *.swp
 __pycache__
-microservice3/
-microservice/pipe.py
-venv/
-.gitignore
-claims_to_nodes/__pycache__/
-__pycache__/
+venv

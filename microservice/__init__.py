@@ -1,1 +1,1 @@
-from .claim_service import *
+from .main import *

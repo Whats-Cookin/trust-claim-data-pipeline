@@ -1,3 +1,5 @@
+import sys
+import logging
 from lib.cleaners import normalize_uri
 from lib.db import unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge, get_claim
 from lib.infer import infer_details
@@ -82,8 +84,12 @@ def process_claim(raw_claim):
     else:
         source_node = None 
         source_uri = raw_claim['sourceURI'] 
+        # Check if source_uri is not None before creating or updating the source_node
         if source_uri is not None:
+            # Maintain the existing behavior: create or retrieve the source_node
             source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
+        else:
+            error_and_exit()
 
         # Create the claim node
         claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
@@ -100,3 +106,7 @@ def process_claim(raw_claim):
         # create the edge from the claim node to the source node
         if source_node:
             get_or_create_edge(claim_node, source_node, 'source', raw_claim['id'])
+
+def error_and_exit():
+    logging.error("An error occured")
+    sys.exit()
