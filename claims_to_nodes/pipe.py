@@ -67,7 +67,7 @@ def process_targeted(claim_id):
 def process_claim(raw_claim):
         # Create or update the nodes dictionary
         if not is_uri(raw_claim['subject']):
-            continue
+            pass
         subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
         object_node = None
         object_uri = raw_claim['object']
