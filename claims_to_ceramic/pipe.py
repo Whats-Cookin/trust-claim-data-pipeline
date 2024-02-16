@@ -15,8 +15,9 @@ def get_composedb_cmd(claim_json):
     if claim_json.get('effectiveDate') and type(claim_json['effectiveDate']) == datetime.datetime:
         claim_json['effectiveDate'] = claim_json['effectiveDate'].strftime('%Y-%m-%d')
     claim_json_str = re.sub(r'\'', '\u2019', json.dumps(claim_json))
-    
-    return f"""composedb document:create {MODEL_ID} '{claim_json_str}' -c '{CERAMIC_URL}' -k {DID_KEY}"""
+    #cmd = f"""composedb document:create {MODEL_ID} '{claim_json_str}' -c '{CERAMIC_URL}' -k {DID_KEY}"""
+    cmd = f"""cd /data/trust-claim-data-pipeline/nody; node publish.mjs '{claim_json_str}'"""
+    return cmd
 
 def publish_unpublished():
     for raw_claim in unpublished_claims_generator():
