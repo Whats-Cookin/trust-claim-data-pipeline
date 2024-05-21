@@ -92,7 +92,7 @@ def process_claim(raw_claim):
                 source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
             # Create the claim node
-            claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
+            claim_uri = raw_claim['claimAddress'] or 'https://live.linkedtrust.us/claims/{}'.format(raw_claim['id'])
             claim_node = get_or_create_node(claim_uri, raw_claim, {
                 "nodeUri": claim_uri,
                 "name": raw_claim['claim'], 
