@@ -1,5 +1,5 @@
 import re
-from lib.cleaners import normalize_uri
+from lib.cleaners import normalize_uri, make_subject_uri
 from lib.db import get_claim, unprocessed_claims_generator, get_node_by_uri, get_edge_by_endpoints, insert_node, insert_edge
 from lib.infer import infer_details
 
@@ -92,14 +92,13 @@ def process_claim(raw_claim):
                 source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
             # Create the claim node
-            claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
+            claim_uri = raw_claim['claimAddress'] or make_subject_uri(raw_claim['id'])
             claim_node = get_or_create_node(claim_uri, raw_claim, {
                 "nodeUri": claim_uri,
                 "name": raw_claim['claim'], 
                 "entType": "CLAIM",
                 "descrip": make_description(raw_claim)
             })
-        
             # Create the edge from the subject node to the claim node
             get_or_create_edge(subject_node, claim_node, raw_claim['claim'], raw_claim['id'])
            

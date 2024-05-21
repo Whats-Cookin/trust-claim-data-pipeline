@@ -32,3 +32,7 @@ def normalize_uri(uri, issuer_id=None):
     # Construct the normalized URL and return it
     normalized_url = urlunparse((scheme, domain, path, "", "", ""))
     return normalized_url
+
+def make_subject_uri(claim_id):
+    # Construct the URI for the subject claim
+    return 'https://live.linkedtrust.us/claims/${}'.format(claim_id)
