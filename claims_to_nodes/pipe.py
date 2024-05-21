@@ -93,6 +93,7 @@ def process_claim(raw_claim):
 
             # Create the claim node
             claim_uri = raw_claim['claimAddress'] or make_subject_uri(raw_claim['id'])
+
             claim_node = get_or_create_node(claim_uri, raw_claim, {
                 "nodeUri": claim_uri,
                 "name": raw_claim['claim'], 
