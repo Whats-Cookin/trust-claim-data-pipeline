@@ -67,7 +67,9 @@ def process_targeted(claim_id):
 def process_claim(raw_claim):
         # Create or update the nodes dictionary
         if not is_uri(raw_claim['subject']):
+           print("Subject " + raw_claim['subject'] + " is NOT a URI, skipping")
            return 
+
         subject_node = get_or_create_node(raw_claim['subject'], raw_claim)
         object_node = None
         object_uri = raw_claim['object']
@@ -92,7 +94,7 @@ def process_claim(raw_claim):
                 source_node = get_or_create_node(raw_claim['sourceURI'], raw_claim)
 
             # Create the claim node
-            claim_uri = raw_claim['claimAddress'] or 'https://linkedtrust.us/claims/{}'.format(raw_claim['id'])
+            claim_uri = raw_claim['claimAddress'] or 'https://live.linkedtrust.us/claims/{}'.format(raw_claim['id'])
             claim_node = get_or_create_node(claim_uri, raw_claim, {
                 "nodeUri": claim_uri,
                 "name": raw_claim['claim'], 
