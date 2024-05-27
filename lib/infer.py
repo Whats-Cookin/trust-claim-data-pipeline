@@ -80,7 +80,11 @@ def infer_details(uri, save_thumbnail=False):
     if not save_thumbnail:
         return (name, None)
 
-    (display, driver) = open_display()
+    try:
+        (display, driver) = open_display()
+    except Exception as e:
+        print("Exception trying to open display: " + str(e) + " skipping")
+        return(name, None)
 
     # Set the desired thumbnail size
     thumbnail_size = (200, 200)

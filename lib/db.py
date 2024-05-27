@@ -32,10 +32,11 @@ def unprocessed_claims_generator():
         # find latest processed claim
         QUERY_LATEST_CLAIMID = 'SELECT MAX("claimId") FROM "Edge"'
         cur.execute(QUERY_LATEST_CLAIMID)
-        latest_claimid = cur.fetchone()[0]
+        #latest_claimid = cur.fetchone()[0]
+        latest_claimid = 118498
         # Read data from the Claim model
-        # TODO track last date and only process new claims
         cur.execute("SELECT id, subject, claim, object, statement, \"effectiveDate\", \"sourceURI\", \"howKnown\", \"dateObserved\", \"digestMultibase\", author, curator, aspect, score, stars, amt, unit, \"howMeasured\", \"intendedAudience\", \"respondAt\", confidence, \"issuerId\", \"issuerIdType\", \"claimAddress\", proof FROM \"Claim\" WHERE id > {}".format(latest_claimid))
+
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
