@@ -8,3 +8,5 @@ import_claims/hypercerts/hypercert-claim-data.csv
 venv
 .env
 import_claims/.DS_Store
+spider_claims/crowdsupply/.env
+spider_claims/crowdsupply/spiders/__pycache__
