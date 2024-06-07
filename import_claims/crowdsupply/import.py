@@ -5,7 +5,7 @@ from dotenv import dotenv_values
 
 config = dotenv_values("../.env")
 
-def extract_config_data(row, backer, project_url, claim):
+def extract_config_data_for_overall_funding(row, backer, project_url, claim, project_description, amt):
     effective_date = row['Date Funded or Days to be funded']
     # Check if the effective_date is a date or an integer (days to be funded)
     try:
@@ -14,17 +14,18 @@ def extract_config_data(row, backer, project_url, claim):
         # Calculate the effective date based on days to be funded
         effective_date = (datetime.strptime(row['Date Scraped'], '%Y-%m-%d') - timedelta(days=int(effective_date))).strftime('%Y-%m-%d')
 
-    statement = f"{backer} {claim} {project_url}"
+    statement = f"Received crowdfunding for {project_description}"
 
     config_data = {
         "filename": csv_filename,
-        "subject": backer,
+        "subject": project_url,
         "subject_type": "",
         "source": project_url,
         "statement": statement,
         "claim": claim,
         "howknown": "WEB_DOCUMENT",
         "effectiveDate": effective_date,
+        "amt_from_csv_header": amt,
         "confidence": 0.9
     }
 
@@ -44,10 +45,12 @@ values = []
 for index, row in df.iterrows():
     backers = [b.strip() for b in row['Backers'].split(',')]
     project_url = row['Project URL']
+    project_description = row['Project Description']
+    amt = row['Amount Raised']
     
     for backer in backers:
         if backer:  # Ensure the backer is not an empty string
-            config_data = extract_config_data(row, backer, project_url, claim)
+            config_data = extract_config_data_for_overall_funding(row, backer, project_url, claim)
             values.append((
                 config_data["subject"],
                 config_data["source"],

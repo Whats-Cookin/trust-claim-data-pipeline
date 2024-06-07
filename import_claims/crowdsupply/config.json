@@ -12,5 +12,6 @@
   "howknown": "",
   "score": 1.0,
   "source_from_csv_header": "",
+  "amt_from_csv_header": "",
   "confidence": 0.9
 }
