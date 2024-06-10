@@ -34,5 +34,6 @@ def normalize_uri(uri, issuer_id=None):
     return normalized_url
 
 def make_subject_uri(raw_claim):
-    """ if the claim has a claim address return that else construct a uri for it """
-    return raw_claim['claimAddress'] or 'https://live.linkedtrust.us/claims/${}'.format(raw_claim['id'])
+    """ Even tho we are interested in using claim address in future, for now we stick to 
+        the same method used by the app for consistency """
+    return 'https://live.linkedtrust.us/claims/${}'.format(raw_claim['id'])
