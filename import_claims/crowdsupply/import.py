@@ -9,52 +9,7 @@ from datetime import datetime, timedelta
 
 config = dotenv_values("../.env")
 
-
-def print_error_and_exit(str):
-    print(f"Error: {str}")
-    sys.exit(2)
-
-
-def get_db_connection():
-    conn = psycopg2.connect(config.get("DATABASE_URL"))
-    return conn
-
-
-def db_get_one(query: str):
-    conn = None
-    res = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(query)
-        res = cur.fetchone()
-
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-    return res
-
-
-def db_post_many(query, values):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.executemany(query, values)
-        conn.commit()
-
-    except (Exception, psycopg2.Error) as error:
-        print("Failed insertion: {}".format(error))
-
-    finally:
-        if conn:
-            cursor.close()
-            conn.close()
-
+from ..addclaims import print_error_and_exit, db_get_one, db_post_many
 
 def main():
     settings = None
