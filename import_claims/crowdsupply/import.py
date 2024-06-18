@@ -1,8 +1,6 @@
 import validators
 import urllib
 import pandas as pd
-import sys
-import psycopg2
 import json
 from dotenv import dotenv_values
 from datetime import datetime, timedelta
