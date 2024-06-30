@@ -1,7 +1,7 @@
 .env
 *.swp
 __pycache__
-
+*.csv
 import_claims/hypercerts/config.json
 import_claims/hypercerts/hypercert-claim-data.csv
 .gitignore

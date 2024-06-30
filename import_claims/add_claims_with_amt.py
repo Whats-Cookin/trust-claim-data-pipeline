@@ -56,6 +56,10 @@ def db_post_many(query, values):
 
 
 def main():
+    iterate_rows()
+
+
+def iterate_rows(preprocess_row = None):
     settings = None
 
     try:
@@ -108,6 +112,11 @@ def main():
 
     values = []
     for _, row in df.iterrows():
+
+        # if we have special preprocessing do that first
+        if preprocess_row:
+            row = reprocess_row(row)
+
         try:
             sub = subject or row[subject_from_csv_header]
             obj = claim_object or row.get(object_from_csv_header)

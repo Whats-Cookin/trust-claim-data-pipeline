@@ -2,12 +2,58 @@ import validators
 import urllib
 import pandas as pd
 import json
+from pprint import pprint
 from dotenv import dotenv_values
 from datetime import datetime, timedelta
+import sys
+import psycopg2
 
 config = dotenv_values("../.env")
 
-from ..addclaims import print_error_and_exit, db_get_one, db_post_many
+def print_error_and_exit(str):
+    print(f"Error: {str}")
+    sys.exit(2)
+
+
+def get_db_connection():
+    conn = psycopg2.connect(config.get("DATABASE_URL"))
+    return conn
+
+
+def db_get_one(query: str):
+    conn = None
+    res = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(query)
+        res = cur.fetchone()
+
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+    return res
+
+
+def db_post_many(query, values):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.executemany(query, values)
+        conn.commit()
+
+    except (Exception, psycopg2.Error) as error:
+        print("Failed insertion: {}".format(error))
+
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
 
 def main():
     settings = None
@@ -24,7 +70,7 @@ def main():
     claim_object = settings.get("object")  # object is a python built-in keyword
     object_from_csv_header = settings.get("object_from_csv_header")
     statement = settings.get("statement")
-    statement_from_csv_header = f" Received crowdfunding for {settings.get("statement_from_csv_header")}"
+    statement_from_csv_header = f'Received crowdfunding for {settings.get("statement_from_csv_header")}'
     claim = settings.get("claim")
     aspect = settings.get("aspect")
     amt_from_csv_header = settings.get("amt_from_csv_header")
@@ -62,7 +108,7 @@ def main():
 
     values = []
     for _, row in df.iterrows():
-        try:
+        if date_from_csv_header:
             sub = subject or row[subject_from_csv_header]
             obj = claim_object or row.get(object_from_csv_header)
             source = fixed_source or row.get(source_from_csv_header)
@@ -76,23 +122,23 @@ def main():
                 obj = "http://trustclaims.whatscookin.us/local/company/" + urllib.parse.quote(obj)
 
             stmt = row.get(statement_from_csv_header, '') or statement
-            amt = int(row.get(amt_from_csv_header, 0))
+            amt = row.get(amt_from_csv_header, 0)
+            amt = int(amt.replace(",",""))
             unit = row.get(unit_from_csv_header, 'USD')
-            try:
-                effective_date = datetime.strptime(row.get(date_from_csv_header, ''), '%b %d %Y').strftime('%Y-%m-%d')
-            except ValueError:
-                # Calculate the effective date based on days to be funded
-                effective_date = (datetime.strptime(row.get(date_from_csv_header, ''), '%Y-%m-%d') - timedelta(days=int(effective_date))).strftime('%Y-%m-%d')
+            effective_date = datetime.strptime(row.get(date_from_csv_header, ''), '%b %d %Y').strftime('%Y-%m-%d')
             issuer_id = f"http://trustclaims.whatscookin.us/users/{spider_id}"
 
             values.append((sub, obj, stmt, claim, aspect, how_known, amt, unit, effective_date,
                            source, confidence, issuer_id, 'URL'))
-        except Exception as e:
-            print("Error, ", type(e))
+        else:
+            print("Error, date_from_csv_header is missing")
 
-    import pdb; pdb.set_trace()
-    query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", amt, unit, "effectiveDate", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-    db_post_many(query, values)
+   # import pdb; pdb.set_trace()
+        query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", amt, unit, "effectiveDate", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        print("WOULD INSERT: ")
+        pprint(values)
+#        db_post_many(query, values)
+    print(f"Successfully imported")
 
 
 if __name__ == "__main__":
