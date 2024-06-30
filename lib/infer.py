@@ -77,6 +77,9 @@ def infer_details(uri, save_thumbnail=False):
     if not name:
         name = uri
 
+    # FOR NOW TODO HERE
+    return (name, None)
+
     if not save_thumbnail:
         return (name, None)
 
