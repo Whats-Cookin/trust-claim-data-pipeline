@@ -1,10 +1,13 @@
 import validators
+import os
 import urllib
+from pprint import pprint
 import pandas as pd
 import sys
 import psycopg2
 import json
 from dotenv import dotenv_values
+import argparse
 
 config = dotenv_values("../.env")
 
@@ -56,14 +59,16 @@ def db_post_many(query, values):
 
 
 def main():
+
     iterate_rows()
 
 
-def iterate_rows(preprocess_row = None):
+def iterate_rows(config_file = 'config.json', preprocess_row = None):
+    print("DIRECTORY:  " + os.getcwd())
     settings = None
 
     try:
-        with open("config.json") as f:
+        with open(config_file) as f:
             settings = json.load(f)
     except Exception as e:
         print_error_and_exit(str(e))
@@ -115,7 +120,10 @@ def iterate_rows(preprocess_row = None):
 
         # if we have special preprocessing do that first
         if preprocess_row:
-            row = reprocess_row(row)
+            try:
+              row = preprocess_row(row)
+            except:
+              continue
 
         try:
             sub = subject or row[subject_from_csv_header]
@@ -141,9 +149,11 @@ def iterate_rows(preprocess_row = None):
         except Exception as e:
             print("Error, ", type(e))
 
-    import pdb; pdb.set_trace()
-    query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", amt, unit, "effectiveDate", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", amt, unit, "effectiveDate", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT ("subject", "effectiveDate", "claim", "sourceURI") DO NOTHING;"""
     db_post_many(query, values)
+
+    print("APPARENTLY PROBABLY SUCCESSFUL?  SHOULD HAVE INSERTED {} values here is first row".format(len(values)))
+    pprint(values[0])
 
 
 if __name__ == "__main__":

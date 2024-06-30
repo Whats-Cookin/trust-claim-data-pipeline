@@ -15,4 +15,4 @@ def preprocess_row(row):
    # but since we set it in the library we will do it anyway
    return row
 
-iterate_rows()
+iterate_rows('./gofundme/config.json', preprocess_row)

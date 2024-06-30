@@ -80,18 +80,20 @@ def infer_details(uri, save_thumbnail=False):
     if not save_thumbnail:
         return (name, None)
 
-    try:
-        (display, driver) = open_display()
-    except Exception as e:
-        print("Exception trying to open display: " + str(e) + " skipping")
-        return(name, None)
-
+    # pause on doing thumbnails, it owuld be nice but not for now
+    #try:
+    #    (display, driver) = open_display()
+    #except Exception as e:
+    #    print("Exception trying to open display: " + str(e) + " skipping")
+    #    return(name, None)
+#
     # Set the desired thumbnail size
-    thumbnail_size = (200, 200)
+    #thumbnail_size = (200, 200)
 
     # Create a thumbnail of the webpage
-    driver.get(uri)
-    screenshot = driver.get_screenshot_as_png()
+    #driver.get(uri)
+    #screenshot = driver.get_screenshot_as_png()
+    screenshot = None
     if screenshot is not None:
         # Open the image using PIL
         img = Image.open(BytesIO(screenshot))
