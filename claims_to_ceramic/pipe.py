@@ -19,9 +19,15 @@ def get_composedb_cmd(claim_json):
     cmd = f"""cd /data/trust-claim-data-pipeline/nody; node publish.mjs '{claim_json_str}'"""
     return cmd
 
+def is_useful(raw_claim):
+    return bool(raw_claim.get('claim') and raw_claim.get('subject') and (raw_claim.get('statement') or raw_claim.get('object')) and raw_claim.get('effectiveDate'))
+
 def publish_unpublished():
     for raw_claim in unpublished_claims_generator():
-        publish_claim(raw_claim)
+        if is_useful(raw_claim):
+          publish_claim(raw_claim)
+        else:
+          print("Skipping claim about " + raw_claim.get('subject') + " bc of missing fields")
 
 """
 '{"amt":{"unit":"USD","value":1500},"claim":"impact","source":{"howKnown":"FIRST_HAND","sourceID":"https://www.linkedin.com/in/goldavelez/"},"statement":"...","subjectID":"https://techsoup.org","confidence":1,"effectiveDate":"2023-11-27"}'

@@ -28,5 +28,13 @@ Then
 
 The nodes and edges will be used to feed the front end views
 
+## To publish to ceramic
+
+```
+. penv/bin/activate
+source .env
+python3 ./run_publisher.py
+```
+
 ## Basic Program Architecture
 ![Program Architecture](./spider-architecture.drawio.png)
