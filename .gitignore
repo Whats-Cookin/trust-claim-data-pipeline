@@ -1,4 +1,7 @@
 .env
+admin_seed.txt
+node_modules
+package-lock.json
 *.swp
 __pycache__
 

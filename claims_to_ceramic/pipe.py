@@ -81,6 +81,7 @@ kjzl6kcym7w8y6eknw5isnnxezsby9gq5tuaqbyeysjeidqerg4jvqvd2fepsz9"""
 def extract_stream_id(composedb_out):
     # apparently the other stuff is on stderr
     return composedb_out.strip() 
+    
 
 def publish_claim(raw_claim):
     # Create or update the nodes dictionary
