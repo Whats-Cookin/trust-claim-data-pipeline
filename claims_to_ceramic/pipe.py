@@ -5,6 +5,7 @@ import re
 import subprocess
 from lib.cleaners import normalize_uri
 from lib.db import get_claim, unpublished_claims_generator, update_claim_address
+from time import sleep
 
 
 CERAMIC_URL = os.getenv('CERAMIC_URL')
@@ -70,6 +71,19 @@ def run_publish(claim_json):
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
+        # first try just sleeping
+        sleep(10)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+           return result.stdout
+
+        sleep(100)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+           return result.stdout
+
+        # sleeping did not help, it is an error 
+
         # Handle error case
         raise Exception(f"Error: {result.stderr}")
     else:
