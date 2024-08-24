@@ -8,3 +8,7 @@ import_claims/hypercerts/hypercert-claim-data.csv
 venv
 .env
 import_claims/.DS_Store
+import_claims/crowdsupply/crowdsupply.csv
+requirement.txt
+.gitignore
+target_pipe.py
