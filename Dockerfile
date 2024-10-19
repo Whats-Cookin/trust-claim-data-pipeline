@@ -25,5 +25,5 @@ EXPOSE 5000
 # this will not work locally without them, it needs a postgres database
 # the docker compose file is in https://github.com/Whats-Cookin/trust_claim_backend
 
-CMD ["flask", "--app", "microservice", "run"] 
-# CMD ["python", "__init__.py"] 
+# CMD ["flask", "--app", "microservice", "run"] 
+CMD ["python", "__init__.py"] 
