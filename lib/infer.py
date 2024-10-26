@@ -2,6 +2,7 @@
 
 from bs4 import BeautifulSoup
 from io import BytesIO
+import re
 from PIL import Image
 import boto3
 from .config import S3_BUCKET
@@ -53,6 +54,9 @@ def infer_details(uri, save_thumbnail=False):
     # Get the title tag from the HTML
     title_tag = soup.title
     name = None
+    if re.search('forbidden', title_tag, re.IGNORECASE):
+       print("Forbidden response from uri: " + uri)
+       return(uri, None)
 
     # Try to get the text content of the title tag
     title_tag = soup.title
