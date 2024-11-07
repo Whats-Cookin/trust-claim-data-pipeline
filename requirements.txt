@@ -1,9 +1,35 @@
-requests==2.25.1
-# psycopg2==2.8.6
-
-# For lib/infer.py
+attrs==24.2.0
 beautifulsoup4==4.9.3
-# Pillow==
-boto3==1.18.49
+blinker==1.8.2
+boto3==1.29.3
+botocore==1.32.3
+certifi==2024.8.30
+chardet==4.0.0
+click==8.1.7
+Flask==3.0.3
+h11==0.14.0
+idna==2.10
+itsdangerous==2.2.0
+Jinja2==3.1.4
+jmespath==0.10.0
+MarkupSafe==3.0.2
+outcome==1.3.0.post0
+pillow==11.0.0
+psycopg2-binary==2.9.10
+PySocks==1.7.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
 PyVirtualDisplay==3.0
+requests==2.25.1
+s3transfer==0.7.0
 selenium==4.8.3
+six==1.16.0
+sniffio==1.3.1
+sortedcontainers==2.4.0
+soupsieve==2.6
+trio==0.27.0
+trio-websocket==0.11.1
+-e git+ssh://git@github.com/Whats-Cookin/trust-claim-data-pipeline.git@0f3384a30c412f74058e091eb56ab0558088b563#egg=trust_claim_data_pipeline
+urllib3==1.26.20
+Werkzeug==3.1.2
+wsproto==1.2.0

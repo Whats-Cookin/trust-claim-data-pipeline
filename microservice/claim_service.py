@@ -8,7 +8,6 @@ import psycopg2
 import traceback
 from datetime import datetime
 
-# Set up logging to both file and console
 log_directory = "logs"
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
@@ -24,10 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Get environment or default to development
 env = os.environ.get('FLASK_ENV', 'development')
 app = Flask(__name__)
 app.config.from_object(config[env])
@@ -39,12 +36,10 @@ def process_claim(claim_id):
         logger.debug(f"Database URI: {app.config['DATABASE_URI']}")
         logger.info("Attempting database connection")
         
-        # Test database connection first
         conn = psycopg2.connect(app.config['DATABASE_URI'])
         logger.info("Database connection successful")
         conn.close()
         
-        # Process the claim synchronously
         logger.info(f"Processing claim with ID: {claim_id}")
         process_targeted(claim_id)
         logger.info(f"Successfully processed claim {claim_id}")
