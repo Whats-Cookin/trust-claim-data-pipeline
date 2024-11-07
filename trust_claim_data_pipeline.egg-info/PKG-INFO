@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: trust-claim-data-pipeline
+Version: 0.1
+Requires-Dist: flask
+Requires-Dist: python-dotenv
+Requires-Dist: psycopg2-binary

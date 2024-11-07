@@ -1,0 +1,227 @@
+2024-11-07 03:08:31,871 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:08:31,872 - __main__ - INFO - Environment: development
+2024-11-07 03:08:31,872 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:08:31,872 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:08:31,920 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5002
+ * Running on http://192.168.0.129:5002
+2024-11-07 03:08:31,920 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-11-07 03:08:31,922 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:08:32,582 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:08:32,582 - __main__ - INFO - Environment: development
+2024-11-07 03:08:32,582 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:08:32,582 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:08:32,604 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:08:32,610 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:09:02,701 - __main__ - INFO - Testing database connection
+2024-11-07 03:09:02,702 - __main__ - DEBUG - Attempting to connect with URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:09:02,873 - __main__ - INFO - Database test successful
+2024-11-07 03:09:02,875 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:09:02] "GET /test-db HTTP/1.1" 200 -
+2024-11-07 03:09:18,455 - __main__ - INFO - Starting to process claim 123
+2024-11-07 03:09:18,455 - __main__ - DEBUG - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:09:18,455 - __main__ - INFO - Attempting database connection
+2024-11-07 03:09:18,468 - __main__ - INFO - Database connection successful
+2024-11-07 03:09:18,468 - __main__ - INFO - Processing claim with ID: 123
+2024-11-07 03:09:18,474 - __main__ - ERROR - Error processing claim 123: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: fe_sendauth: no password supplied
+
+2024-11-07 03:09:18,510 - __main__ - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/mg/Documents/trust-claim-data-pipeline/lib/db.py", line 10, in get_conn
+    conn.status
+    ^^^^
+NameError: name 'conn' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/mg/Documents/trust-claim-data-pipeline/microservice/claim_service.py", line 49, in process_claim
+    process_targeted(claim_id)
+  File "/home/mg/Documents/trust-claim-data-pipeline/claims_to_nodes/pipe.py", line 64, in process_targeted
+    raw_claim = get_claim(claim_id)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/mg/Documents/trust-claim-data-pipeline/lib/db.py", line 23, in get_claim
+    with get_conn().cursor() as cur:
+         ^^^^^^^^^^
+  File "/home/mg/Documents/trust-claim-data-pipeline/lib/db.py", line 13, in get_conn
+    conn = psycopg2.connect(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/mg/Documents/trust-claim-data-pipeline/venv/lib/python3.12/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: fe_sendauth: no password supplied
+
+
+2024-11-07 03:09:18,511 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:09:18] "[35m[1mPOST /process_claim/123 HTTP/1.1[0m" 500 -
+2024-11-07 03:14:50,158 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:14:50,374 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:14:51,213 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:14:51,213 - __main__ - INFO - Environment: development
+2024-11-07 03:14:51,213 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:14:51,213 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:14:51,245 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:14:51,250 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:16:58,279 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:16:58,634 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:16:59,398 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:16:59,398 - __main__ - INFO - Environment: development
+2024-11-07 03:16:59,398 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:16:59,398 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:16:59,418 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:16:59,424 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:17:01,470 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:17:01,753 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:17:02,522 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:17:02,522 - __main__ - INFO - Environment: development
+2024-11-07 03:17:02,522 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:17:02,523 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:17:02,540 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:17:02,545 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:17:36,905 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:17:36,906 - __main__ - INFO - Environment: development
+2024-11-07 03:17:36,906 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:17:36,906 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:17:46,471 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:17:46,472 - __main__ - INFO - Environment: development
+2024-11-07 03:17:46,472 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:17:46,472 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:17:46,514 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5002
+ * Running on http://192.168.0.129:5002
+2024-11-07 03:17:46,515 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-11-07 03:17:46,516 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:17:47,177 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:17:47,178 - __main__ - INFO - Environment: development
+2024-11-07 03:17:47,178 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:17:47,178 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:17:47,198 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:17:47,204 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:18:06,737 - __main__ - INFO - Testing database connection
+2024-11-07 03:18:06,737 - __main__ - DEBUG - Attempting to connect with URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:18:06,750 - __main__ - INFO - Database test successful
+2024-11-07 03:18:06,751 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:18:06] "GET /test-db HTTP/1.1" 200 -
+2024-11-07 03:18:11,619 - __main__ - INFO - Starting to process claim 123
+2024-11-07 03:18:11,619 - __main__ - DEBUG - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:18:11,619 - __main__ - INFO - Attempting database connection
+2024-11-07 03:18:11,632 - __main__ - INFO - Database connection successful
+2024-11-07 03:18:11,632 - __main__ - INFO - Processing claim with ID: 123
+2024-11-07 03:18:11,713 - __main__ - ERROR - Error processing claim 123: relation "claims" does not exist
+LINE 2:                 SELECT * FROM claims WHERE id = '123'
+                                      ^
+
+2024-11-07 03:18:11,714 - __main__ - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/mg/Documents/trust-claim-data-pipeline/microservice/claim_service.py", line 49, in process_claim
+    process_targeted(claim_id)
+  File "/home/mg/Documents/trust-claim-data-pipeline/claims_to_nodes/pipe.py", line 64, in process_targeted
+    raw_claim = get_claim(claim_id)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/mg/Documents/trust-claim-data-pipeline/lib/db.py", line 25, in get_claim
+    cur.execute("""
+psycopg2.errors.UndefinedTable: relation "claims" does not exist
+LINE 2:                 SELECT * FROM claims WHERE id = '123'
+                                      ^
+
+
+2024-11-07 03:18:11,716 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:18:11] "[35m[1mPOST /process_claim/123 HTTP/1.1[0m" 500 -
+2024-11-07 03:20:41,094 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:20:41,310 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:20:42,093 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:20:42,093 - __main__ - INFO - Environment: development
+2024-11-07 03:20:42,093 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:20:42,094 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:20:42,117 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:20:42,121 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:20:43,160 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:20:43,421 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:20:44,670 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:20:44,672 - __main__ - INFO - Environment: development
+2024-11-07 03:20:44,673 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:20:44,673 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:20:44,705 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:20:44,713 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:20:49,845 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:20:50,046 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:20:50,881 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:20:50,881 - __main__ - INFO - Environment: development
+2024-11-07 03:20:50,882 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:20:50,882 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:20:50,901 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:20:50,907 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:28:08,524 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:28:08,524 - __main__ - INFO - Environment: development
+2024-11-07 03:28:08,525 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:28:08,525 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:28:08,602 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5002
+ * Running on http://192.168.0.129:5002
+2024-11-07 03:28:08,603 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-11-07 03:28:08,608 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:28:09,838 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:28:09,838 - __main__ - INFO - Environment: development
+2024-11-07 03:28:09,839 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:28:09,839 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:28:09,865 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:28:09,873 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:28:16,103 - __main__ - INFO - Testing database connection
+2024-11-07 03:28:16,104 - __main__ - DEBUG - Attempting to connect with URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:28:16,117 - __main__ - INFO - Database test successful
+2024-11-07 03:28:16,118 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:28:16] "GET /test-db HTTP/1.1" 200 -
+2024-11-07 03:28:28,957 - __main__ - INFO - Starting to process claim 123
+2024-11-07 03:28:28,958 - __main__ - DEBUG - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:28:28,958 - __main__ - INFO - Attempting database connection
+2024-11-07 03:28:28,969 - __main__ - INFO - Database connection successful
+2024-11-07 03:28:28,969 - __main__ - INFO - Processing claim with ID: 123
+2024-11-07 03:28:28,985 - __main__ - ERROR - Error processing claim 123: tuple indices must be integers or slices, not str
+2024-11-07 03:28:28,986 - __main__ - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/mg/Documents/trust-claim-data-pipeline/microservice/claim_service.py", line 49, in process_claim
+    process_targeted(claim_id)
+  File "/home/mg/Documents/trust-claim-data-pipeline/claims_to_nodes/pipe.py", line 65, in process_targeted
+    process_claim(raw_claim)
+  File "/home/mg/Documents/trust-claim-data-pipeline/claims_to_nodes/pipe.py", line 69, in process_claim
+    if not is_uri(raw_claim['subject']):
+                  ~~~~~~~~~^^^^^^^^^^^
+TypeError: tuple indices must be integers or slices, not str
+
+2024-11-07 03:28:28,987 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:28:28] "[35m[1mPOST /process_claim/123 HTTP/1.1[0m" 500 -
+2024-11-07 03:31:08,702 - werkzeug - INFO -  * Detected change in '/home/mg/Documents/trust-claim-data-pipeline/lib/db.py', reloading
+2024-11-07 03:31:08,888 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:31:10,087 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:31:10,087 - __main__ - INFO - Environment: development
+2024-11-07 03:31:10,087 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:31:10,087 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:31:10,103 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:31:10,123 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:34:43,948 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:34:43,948 - __main__ - INFO - Environment: development
+2024-11-07 03:34:43,948 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:34:43,948 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:34:44,002 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5002
+ * Running on http://192.168.0.129:5002
+2024-11-07 03:34:44,002 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-11-07 03:34:44,004 - werkzeug - INFO -  * Restarting with stat
+2024-11-07 03:34:44,768 - __main__ - INFO - Starting server on 0.0.0.0:5002
+2024-11-07 03:34:44,768 - __main__ - INFO - Environment: development
+2024-11-07 03:34:44,768 - __main__ - INFO - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:34:44,768 - __main__ - INFO - Log file location: logs/service_20241107.log
+2024-11-07 03:34:44,794 - werkzeug - WARNING -  * Debugger is active!
+2024-11-07 03:34:44,799 - werkzeug - INFO -  * Debugger PIN: 105-720-627
+2024-11-07 03:34:47,388 - __main__ - INFO - Starting to process claim 124
+2024-11-07 03:34:47,388 - __main__ - DEBUG - Database URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:34:47,388 - __main__ - INFO - Attempting database connection
+2024-11-07 03:34:47,400 - __main__ - INFO - Database connection successful
+2024-11-07 03:34:47,401 - __main__ - INFO - Processing claim with ID: 124
+2024-11-07 03:34:47,429 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): example.com:80
+2024-11-07 03:34:47,947 - urllib3.connectionpool - DEBUG - http://example.com:80 "GET /subject HTTP/1.1" 404 648
+2024-11-07 03:34:48,051 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): example.com:80
+2024-11-07 03:34:48,661 - urllib3.connectionpool - DEBUG - http://example.com:80 "GET /object HTTP/1.1" 404 648
+2024-11-07 03:34:48,767 - __main__ - INFO - Successfully processed claim 124
+2024-11-07 03:34:48,770 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:34:48] "POST /process_claim/124 HTTP/1.1" 200 -
+2024-11-07 03:34:56,443 - __main__ - INFO - Testing database connection
+2024-11-07 03:34:56,443 - __main__ - DEBUG - Attempting to connect with URI: postgresql://emos:12@localhost:5432/claim?sslmode=disable
+2024-11-07 03:34:56,458 - __main__ - INFO - Database test successful
+2024-11-07 03:34:56,459 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:34:56] "GET /test-db HTTP/1.1" 200 -
+2024-11-07 03:35:16,514 - __main__ - INFO - Health check requested
+2024-11-07 03:35:16,516 - werkzeug - INFO - 127.0.0.1 - - [07/Nov/2024 03:35:16] "GET /health HTTP/1.1" 200 -
