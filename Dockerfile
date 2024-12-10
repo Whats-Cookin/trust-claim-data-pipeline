@@ -6,9 +6,11 @@ RUN apt-get update && apt-get -y install cron
 
 WORKDIR /data/trust-claim-data-pipeline
 
-COPY . .
+COPY ./requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY . .
 
 # Set up Crontab
 COPY crontab.dev /etc/cron.d/my-crontab
@@ -23,8 +25,4 @@ EXPOSE 5000
 # this will not work locally without them, it needs a postgres database
 # the docker compose file is in https://github.com/Whats-Cookin/trust_claim_backend
 
-# for now just keep running to run crontab
-CMD while true; do sleep 1000; done
-# TODO when we have microservice start it here like
-# CMD python ./app.py
-
+CMD ["python", "__init__.py"] 
