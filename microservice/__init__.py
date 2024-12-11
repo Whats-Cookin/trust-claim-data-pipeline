@@ -15,3 +15,10 @@ def process_claim(claim_id):
     except Exception as e:
         app.logger.error(f'Failed to sign claim with id: "{claim_id}"')
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    from waitress import serve
+
+    from lib.config import APP_PORT
+
+    serve(app, host="0.0.0.0", port=APP_PORT or 5000)
