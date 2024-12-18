@@ -80,7 +80,7 @@ def update_claim_address(claim_id, claim_address):
     query = f"UPDATE \"Claim\" set \"claimAddress\" = '{claim_address}' where id = {claim_id}"
     with get_conn().cursor() as cur:
         cur.execute(query)
-        conn.commit()
+        cur.connection.commit()
 
 def insert_data(table, data):
     conn = get_conn()

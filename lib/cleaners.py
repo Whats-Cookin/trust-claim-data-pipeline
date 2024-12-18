@@ -1,3 +1,4 @@
+import re
 import requests
 from urllib.parse import urlparse, urlunparse
 
@@ -13,6 +14,18 @@ def normalize_uri(uri, issuer_id=None):
     parsed_url = urlparse(uri)
     domain = parsed_url.netloc.lower()
     path = parsed_url.path
+
+
+    # if domain is empty, try to detect domain pattern
+    if not domain:
+       domain_pattern = r'^([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/.*)?$'
+       if re.match(domain_pattern, uri):
+           # Split at first slash to separate domain from path
+           parts = uri.split('/', 1)
+           domain = parts[0].lower()
+           path = '/' + parts[1] if len(parts) > 1 else ''
+
+    print(f"Domain: {domain}  Path:{path}")
 
     # Add the http or https prefix if necessary
     if parsed_url.scheme:
