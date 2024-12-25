@@ -9,6 +9,10 @@ new claims entered by users.
 
 We are working on a microservice that the Node server running [trust_claim_backend](https://github.com/Whats-Cookin/trust_claim_backend) can call as each new claim is added, currently the crontab just updates every 5 min
 
+To process a specific claim, run
+
+`./target_pipe.py [CLAIM_ID]`
+
 ## For Spider
 
 python code to run separate steps of the pipeline, and later maybe to orchestrate

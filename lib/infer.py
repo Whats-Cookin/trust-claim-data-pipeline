@@ -6,6 +6,7 @@ import re
 from PIL import Image
 import boto3
 from .config import S3_BUCKET
+from pprint import pprint
 import requests
 from selenium import webdriver
 from pyvirtualdisplay import Display
@@ -39,13 +40,17 @@ def infer_details(uri, save_thumbnail=False):
         print("Cannot retrieve url: " + uri)
         return(uri, None)
 
+    if response.status_code == 403:
+        print("Forbidden")
+        return(uri, None)
+
     try:
       jc = response.json()
       if jc:
          return (jc.get('name'), jc.get('image'))
     except Exception as e:
       print("Its not json")
-
+      pprint(response)
     content = response.content
 
     # Parse the webpage content using Beautiful Soup
@@ -54,9 +59,6 @@ def infer_details(uri, save_thumbnail=False):
     # Get the title tag from the HTML
     title_tag = soup.title
     name = None
-    if re.search('forbidden', title_tag.text, re.IGNORECASE):
-       print("Forbidden response from uri: " + uri)
-       return(uri, None)
 
     # Try to get the text content of the title tag
     if title_tag is not None and title_tag.string:
