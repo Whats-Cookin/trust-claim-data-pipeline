@@ -1,6 +1,7 @@
 import psycopg2
 
-from lib.config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from lib.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+
 
 # Connect to the PostgreSQL database
 def get_conn():
@@ -79,7 +80,7 @@ def update_claim_address(claim_id, claim_address):
     query = f"UPDATE \"Claim\" set \"claimAddress\" = '{claim_address}' where id = {claim_id}"
     with get_conn().cursor() as cur:
         cur.execute(query)
-        conn.commit()
+        cur.connection.commit()
 
 def insert_data(table, data):
     conn = get_conn()

@@ -1,7 +1,6 @@
-
 # Data Pipelines for Trust Claims
 
-This repo includes code for spidering and importing claims, and ALSO for processing 
+This repo includes code for spidering and importing claims, and ALSO for processing
 new claims entered by users.
 
 ## For Processing Server
@@ -18,27 +17,28 @@ To process a specific claim, run
 
 python code to run separate steps of the pipeline, and later maybe to orchestrate
 
-1) spider and save raw data to be turned into claims
+1. spider and save raw data to be turned into claims
 
-2) clean and normalize the data into an importable format
+2. clean and normalize the data into an importable format
 
-3) import into signed claims (signed by our spider)
+3. import into signed claims (signed by our spider)
 
 That's all the import data pipeline
 
 Then
 
-4) dedupe, parse and decorate claims into nodes and edges
+4. dedupe, parse and decorate claims into nodes and edges
 
 The nodes and edges will be used to feed the front end views
 
 ## To publish to ceramic
 
-```
+```bash
 . penv/bin/activate
 source .env
 python3 ./run_publisher.py
 ```
 
 ## Basic Program Architecture
+
 ![Program Architecture](./spider-architecture.drawio.png)

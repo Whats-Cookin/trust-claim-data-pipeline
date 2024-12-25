@@ -61,7 +61,6 @@ def infer_details(uri, save_thumbnail=False):
     name = None
 
     # Try to get the text content of the title tag
-    title_tag = soup.title
     if title_tag is not None and title_tag.string:
         name = title_tag.string.strip()
 
