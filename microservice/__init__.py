@@ -13,7 +13,7 @@ def process_claim(claim_id):
         process_targeted(claim_id)
         return jsonify({"message": "Claim processed successfully"}), 200
     except Exception as e:
-        app.logger.error(f'Failed to sign claim with id: "{claim_id}"')
+        app.logger.error(f'Failed to sign claim with id: "{claim_id}" : {str(e)}')
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
