@@ -82,29 +82,35 @@ def main():
     fixed_source = settings.get("source")
     source_from_csv_header = settings.get("source_from_csv_header")
     confidence = settings.get("confidence")
-    how_known = settings.get("howknown")  
+    how_known = settings.get("howknown")
 
     if not (filename):
         print_error_and_exit('"filename" is a required field')
     if not (subject or subject_from_csv_header):
-        print_error_and_exit('Either "subject" or "subject_from_csv_header" field is required')
-    if not (claim_object or object_from_csv_header or fixed_source or source_from_csv_header):
-        print_error_and_exit('Either "object" or "object_from_csv_header" or "source" field is required')
+        print_error_and_exit(
+            'Either "subject" or "subject_from_csv_header" field is required'
+        )
+    if not (
+        claim_object or object_from_csv_header or fixed_source or source_from_csv_header
+    ):
+        print_error_and_exit(
+            'Either "object" or "object_from_csv_header" or "source" field is required'
+        )
     if not (claim):
         print_error_and_exit('"claim" is a required field')
 
     try:
-        df = pd.read_csv(filename, on_bad_lines='skip')
+        df = pd.read_csv(filename, on_bad_lines="skip")
     except FileNotFoundError:
-        print_error_and_exit(f"Error: File not found. Is \"{filename}\" a valid path?")
+        print_error_and_exit(f'Error: File not found. Is "{filename}" a valid path?')
     except Exception as e:
         print_error_and_exit(f"{str(e)}")
 
     spider = db_get_one("""SELECT * FROM "User" WHERE name='SPIDER'""")
     if spider:
-       spider_id = spider[0]
+        spider_id = spider[0]
     else:
-       spider_id = 1
+        spider_id = 1
 
     values = []
     for _, row in df.iterrows():
@@ -113,26 +119,46 @@ def main():
             obj = claim_object or row.get(object_from_csv_header)
             source = fixed_source or row.get(source_from_csv_header)
             if obj:
-               obj_is_url = validators.url(obj)
+                obj_is_url = validators.url(obj)
             else:
-               obj = ''
-               obj_is_url = False
+                obj = ""
+                obj_is_url = False
 
             if obj and not obj_is_url:
-                obj = "http://trustclaims.whatscookin.us/local/company/" + urllib.parse.quote(obj)
+                obj = (
+                    "http://trustclaims.whatscookin.us/local/company/"
+                    + urllib.parse.quote(obj)
+                )
 
-            stmt = row.get(statement_from_csv_header, '') or statement
+            stmt = row.get(statement_from_csv_header, "") or statement
             amt = int(row.get(amt_from_csv_header, 0))
-            unit = row.get(unit_from_csv_header, 'USD')
-            effective_date = row.get(date_from_csv_header, '')
+            unit = row.get(unit_from_csv_header, "USD")
+            effective_date = row.get(date_from_csv_header, "")
             issuer_id = f"http://trustclaims.whatscookin.us/users/{spider_id}"
 
-            values.append((sub, obj, stmt, claim, aspect, how_known, amt, unit, effective_date,
-                           source, confidence, issuer_id, 'URL'))
+            values.append(
+                (
+                    sub,
+                    obj,
+                    stmt,
+                    claim,
+                    aspect,
+                    how_known,
+                    amt,
+                    unit,
+                    effective_date,
+                    source,
+                    confidence,
+                    issuer_id,
+                    "URL",
+                )
+            )
         except Exception as e:
             print("Error, ", type(e))
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     query = """INSERT INTO "Claim" (subject, object, statement, claim, aspect, "howKnown", amt, unit, "effectiveDate", "sourceURI", confidence, "issuerId", "issuerIdType") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     db_post_many(query, values)
 

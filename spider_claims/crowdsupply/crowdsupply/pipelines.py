@@ -18,5 +18,5 @@ class CrowdsupplyPipeline:
             if value:
                 adapter[field_name] = value
             else:
-                adapter[field_name] = 'NIL'
+                adapter[field_name] = "NIL"
         return item

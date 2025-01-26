@@ -15,7 +15,6 @@ class CrowdsupplyItem(scrapy.Item):
     project_name = scrapy.Field()
     project_description = scrapy.Field()
 
-    
     backers_url = scrapy.Field()
     backers = scrapy.Field()
     number_of_backers = scrapy.Field()
