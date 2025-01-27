@@ -91,11 +91,12 @@ def process_targeted(claim_id):
 
 def process_claim(raw_claim):
     # Create or update the nodes dictionary
-    if not is_uri(raw_claim["subject"]):
-        print("Subject " + raw_claim["subject"] + " is NOT a URI, skipping")
+    uri = raw_claim["claimAddress"] or raw_claim["subject"]
+    if not is_uri(uri):
+        print(f"Claim Address or subject {uri} is NOT valid a URI, skipping")
         return
 
-    subject_node = get_or_create_node(raw_claim["subject"], raw_claim)
+    subject_node = get_or_create_node(uri, raw_claim)
     object_node = None
     object_uri = raw_claim["object"]
 
