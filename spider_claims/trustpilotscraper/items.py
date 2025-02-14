@@ -11,6 +11,7 @@ class TrustpilotscraperItem(scrapy.Item):
     # name = scrapy.Field()
     pass
 
+
 class CompanyItem(scrapy.Item):
     url = scrapy.Field()
     company_name = scrapy.Field()

@@ -1,15 +1,18 @@
 # infer the name and thumbnail image from uri
 
-from bs4 import BeautifulSoup
-from io import BytesIO
 import re
-from PIL import Image
-import boto3
-from .config import S3_BUCKET
+from io import BytesIO
 from pprint import pprint
+
+import boto3
 import requests
-from selenium import webdriver
+from bs4 import BeautifulSoup
+from PIL import Image
 from pyvirtualdisplay import Display
+from selenium import webdriver
+
+from .config import S3_BUCKET
+
 
 def open_display():
     # Set up a virtual display using Xvfb
@@ -18,11 +21,12 @@ def open_display():
 
     # Set up the Selenium web driver with headless options
     options = webdriver.ChromeOptions()
-    options.add_argument('headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(options=options)
     return (display, driver)
+
 
 def close_display(display, driver):
     # Terminate the Xvfb instance
@@ -31,6 +35,7 @@ def close_display(display, driver):
     # Quit the Selenium driver
     driver.quit()
 
+
 def infer_details(uri, save_thumbnail=False):
 
     # Get the webpage content
@@ -38,23 +43,23 @@ def infer_details(uri, save_thumbnail=False):
         response = requests.get(uri)
     except:
         print("Cannot retrieve url: " + uri)
-        return(uri, None)
+        return (uri, None)
 
     if response.status_code == 403:
         print("Forbidden")
-        return(uri, None)
+        return (uri, None)
 
     try:
-      jc = response.json()
-      if jc:
-         return (jc.get('name'), jc.get('image'))
+        jc = response.json()
+        if jc:
+            return (jc.get("name"), jc.get("image"))
     except Exception as e:
-      print("Its not json")
-      pprint(response)
+        print("Its not json")
+        pprint(response)
     content = response.content
 
     # Parse the webpage content using Beautiful Soup
-    soup = BeautifulSoup(content, 'html.parser')
+    soup = BeautifulSoup(content, "html.parser")
 
     # Get the title tag from the HTML
     title_tag = soup.title
@@ -66,15 +71,15 @@ def infer_details(uri, save_thumbnail=False):
 
     # If the title tag is not found or has no text content, try the first h1 tag
     if not name:
-        h1_tag = soup.find('h1')
+        h1_tag = soup.find("h1")
         if h1_tag is not None:
             name = h1_tag.string.strip()
 
     # If the h1 tag is not found or has no text content, try the meta title tag
     if not name:
-        meta_title_tag = soup.find('meta', attrs={'name': 'title'})
+        meta_title_tag = soup.find("meta", attrs={"name": "title"})
         if meta_title_tag is not None:
-            name = meta_title_tag['content'].strip()
+            name = meta_title_tag["content"].strip()
         # Get the text content of the title tag
         if title_tag is not None:
             name = title_tag.string
@@ -89,7 +94,7 @@ def infer_details(uri, save_thumbnail=False):
         (display, driver) = open_display()
     except Exception as e:
         print("Exception trying to open display: " + str(e) + " skipping")
-        return(name, None)
+        return (name, None)
 
     # Set the desired thumbnail size
     thumbnail_size = (200, 200)
@@ -106,22 +111,22 @@ def infer_details(uri, save_thumbnail=False):
 
         # Save the thumbnail to a BytesIO object
         thumbnail_io = BytesIO()
-        img.save(thumbnail_io, format='PNG')
+        img.save(thumbnail_io, format="PNG")
 
         # Store the thumbnail to S3
-        s3 = boto3.resource('s3')
+        s3 = boto3.resource("s3")
         bucket = s3.Bucket(S3_BUCKET)
-        object_key = 'thumbnails/' + uri.replace('/', '_') + '.png'
+        object_key = "thumbnails/" + uri.replace("/", "_") + ".png"
         bucket.put_object(Key=object_key, Body=thumbnail_io.getvalue())
 
         # Get the URL to the stored thumbnail
         thumbnail_url = s3.meta.client.generate_presigned_url(
-            'get_object',
+            "get_object",
             Params={
-                'Bucket': S3_BUCKET,
-                'Key': object_key,
-            }
+                "Bucket": S3_BUCKET,
+                "Key": object_key,
+            },
         )
         print("Saved image to : " + thumbnail_url)
         close_display(display, driver)
-        return(name, thumbnail_url)
+        return (name, thumbnail_url)
