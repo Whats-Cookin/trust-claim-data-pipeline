@@ -1,16 +1,15 @@
 import psycopg2
+import json
 
 from lib.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-
 
 # Connect to the PostgreSQL database
 def get_conn():
     global conn
     try:
-        # check if conn is open
-        conn.status
+        conn.status  # Check if the connection is open
     except (NameError, AttributeError, psycopg2.OperationalError):
-        # conn is closed or doesn't exist yet
+        # Reconnect if the connection is closed or doesn't exist
         conn = psycopg2.connect(
             database=DB_NAME,
             user=DB_USER,
@@ -22,33 +21,60 @@ def get_conn():
 
 
 def get_claim(claim_id):
+    query = """SELECT id, subject, claim, object, statement, "effectiveDate", 
+               "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, 
+               curator, aspect, score, stars, amt, unit, "howMeasured", 
+               "intendedAudience", "respondAt", confidence, "issuerId", 
+               "issuerIdType", "claimAddress", proof 
+               FROM "Claim" WHERE id = %s"""
+    return execute_sql_query(query, (claim_id,))
+
+
+def get_credential(credential_id):
+    query = """SELECT id, context, type, issuer, "issuanceDate", 
+                      "expirationDate", "credentialSubject", proof, "sameAs", 
+                      "createdAt", "updatedAt"
+               FROM "Credential" WHERE id = %s"""
+    
+    result = execute_sql_query(query, (credential_id,))
+
+    if result:
+        # Convert JSON fields from dict to string if necessary
+        json_fields = ["context", "type", "issuer", "credentialSubject", "proof", "sameAs"]
+        for field in json_fields:
+            if field in result and isinstance(result[field], dict):
+                result[field] = json.dumps(result[field])  # Convert dict to JSON string
+                
+    return result
+
+
+def unprocessed_entities_generator(entity_type="claim"):
+    table_name = '"Claim"' if entity_type == "claim" else '"Credential"'
+    id_column = "claimId" if entity_type == "claim" else "credentialId"
+
     with get_conn().cursor() as cur:
-        # Read data from the Claim model
-        cur.execute(
-            'SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score, stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence, "issuerId", "issuerIdType", "claimAddress", proof FROM "Claim" WHERE id = {}'.format(
-                claim_id
-            )
-        )
+        cur.execute(f'SELECT MAX("{id_column}") FROM "Edge"')
+        latest_entity_id = cur.fetchone()[0] or 0  # Default to 0 if None
+
+        query = f'SELECT * FROM {table_name} WHERE id > %s'
+        cur.execute(query, (latest_entity_id,))
+
         columns = [desc[0] for desc in cur.description]
-        row = cur.fetchone()
-        return dict(zip(columns, row))
+        while True:
+            rows = cur.fetchmany()
+            if not rows:
+                break
+            for row in rows:
+                yield dict(zip(columns, row))
 
 
-def unprocessed_claims_generator():
+def unpublished_entities_generator(entity_type="claim"):
+    table_name = '"Claim"' if entity_type == "claim" else '"Credential"'
+    address_column = "claimAddress" if entity_type == "claim" else "credentialAddress"
+
+    query = f'SELECT * FROM {table_name} WHERE "{address_column}" IS NULL OR "{address_column}" = \'\''
     with get_conn().cursor() as cur:
-        # find latest processed claim
-        QUERY_LATEST_CLAIMID = 'SELECT MAX("claimId") FROM "Edge"'
-        cur.execute(QUERY_LATEST_CLAIMID)
-        latest_claimid = cur.fetchone()[0]
-        # manually set to backfill
-        # latest_claimid = 118498
-        # Read data from the Claim model
-        cur.execute(
-            'SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score, stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence, "issuerId", "issuerIdType", "claimAddress", proof FROM "Claim" WHERE id > {}'.format(
-                latest_claimid
-            )
-        )
-
+        cur.execute(query)
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany()
@@ -58,21 +84,16 @@ def unprocessed_claims_generator():
                 yield dict(zip(columns, row))
 
 
-def unpublished_claims_generator():
-    with get_conn().cursor() as cur:
-        # Read data from the Claim model
-        # TODO track last date and only process new claims
-        cur.execute(
-            'SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score, stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence, "issuerId", "issuerIdType", "claimAddress", proof FROM "Claim" WHERE "claimAddress" is NULL or "claimAddress" = \'\''
-        )
-        # could refactor this section with above function
-        columns = [desc[0] for desc in cur.description]
-        while True:
-            rows = cur.fetchmany()
-            if not rows:
-                break
-            for row in rows:
-                yield dict(zip(columns, row))
+def update_entity_address(entity_type, entity_id, entity_address):
+    """Update the claimAddress or credentialAddress field"""
+    if not entity_id:
+        raise ValueError("Cannot update without an entity ID")
+    
+    table_name = '"Claim"' if entity_type == "claim" else '"Credential"'
+    address_column = "claimAddress" if entity_type == "claim" else "credentialAddress"
+
+    query = f'UPDATE {table_name} SET "{address_column}" = %s WHERE id = %s'
+    execute_sql_query(query, (entity_address, entity_id))
 
 
 def execute_sql_query(query, params):
@@ -83,32 +104,14 @@ def execute_sql_query(query, params):
         if result is not None:
             col_names = [desc[0] for desc in cur.description]
             return dict(zip(col_names, result))
-        else:
-            return None
-
-
-def update_claim_address(claim_id, claim_address):
-    """Update the claimAddress field of a claim"""
-    if not claim_id:
-        raise Exception("Cannot update without a claim id")
-    query = (
-        f'UPDATE "Claim" set "claimAddress" = \'{claim_address}\' where id = {claim_id}'
-    )
-    with get_conn().cursor() as cur:
-        cur.execute(query)
-        cur.connection.commit()
+        return None
 
 
 def insert_data(table, data):
     conn = get_conn()
     quoted_keys = ['"' + key + '"' for key in data.keys()]
-    query = f"INSERT INTO \"{table}\" ({', '.join(quoted_keys)}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
-    try:
-        return execute_sql_query(query, tuple(data.values()))["id"]
-    except:
-        import pdb
-
-        pdb.set_trace()
+    query = f'INSERT INTO "{table}" ({", ".join(quoted_keys)}) VALUES ({", ".join(["%s"] * len(data))}) RETURNING id;'
+    return execute_sql_query(query, tuple(data.values()))["id"]
 
 
 def insert_node(node):
@@ -123,64 +126,28 @@ def insert_edge(edge):
 
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
-    select_node_sql = """
-        SELECT id, \"nodeUri\", name, \"entType\", descrip, image, thumbnail
-        FROM \"Node\"
-        WHERE \"nodeUri\" = %s;
-    """
-    try:
-        row = execute_sql_query(select_node_sql, (node_uri,))
-    except:
-        import pdb
-
-        pdb.set_trace()
-    if row is None:
-        print("{} not found in db".format(node_uri))
-        return None
-    node_dict = {
-        "id": row["id"],
-        "nodeUri": row["nodeUri"],
-        "name": row["name"],
-        "entType": row["entType"],
-        "descrip": row["descrip"],
-        "image": row["image"],
-        "thumbnail": row["thumbnail"],
-    }
-    return node_dict
+    query = """SELECT id, "nodeUri", name, "entType", descrip, image, thumbnail
+               FROM "Node" WHERE "nodeUri" = %s"""
+    return execute_sql_query(query, (node_uri,))
 
 
-def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
+def get_edge_by_endpoints(start_node_id, end_node_id, entity_id):
     """Retrieve an Edge from the database by the IDs of its start and end Nodes."""
-    select_edge_sql = """
-        SELECT id, \"startNodeId\", \"endNodeId\", label, thumbnail, \"claimId\"
-        FROM \"Edge\"
-        WHERE \"startNodeId\" = %s AND \"endNodeId\" = %s AND \"claimId\" = %s;
-    """
-    row = execute_sql_query(select_edge_sql, (start_node_id, end_node_id, claim_id))
-    if row is None:
-        return None
-
-    edge_dict = {
-        "id": row["id"],
-        "startNodeId": row["startNodeId"],
-        "endNodeId": row["endNodeId"],
-        "label": row["label"],
-        "thumbnail": row["thumbnail"],
-        "claimId": row["claimId"],
-    }
-    return edge_dict
+    query = """SELECT id, "startNodeId", "endNodeId", label, thumbnail, "claimId"
+               FROM "Edge" WHERE "startNodeId" = %s AND "endNodeId" = %s AND "claimId" = %s"""
+    return execute_sql_query(query, (start_node_id, end_node_id, entity_id))
 
 
-def del_claim(claim_id):
-    if not claim_id:
-        raise ("A non-zero non-null claim id is required")
+def del_entity(entity_type, entity_id):
+    """Delete a Claim or Credential along with its associated edges."""
+    if not entity_id:
+        raise ValueError("A non-zero, non-null entity ID is required")
+    
+    table_name = '"Claim"' if entity_type == "claim" else '"Credential"'
+    id_column = "claimId" if entity_type == "claim" else "credentialId"
 
     conn = get_conn()
     with conn.cursor() as cur:
-        # delete the edges related to the claim
-        cur.execute('delete from "Edge" where "claimId" = {}'.format(claim_id))
-
-        cur.execute('delete from "Claim" where id = {}'.format(claim_id))
+        cur.execute(f'DELETE FROM "Edge" WHERE "{id_column}" = %s', (entity_id,))
+        cur.execute(f'DELETE FROM {table_name} WHERE id = %s', (entity_id,))
         conn.commit()
-
-        return

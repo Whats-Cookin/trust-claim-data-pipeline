@@ -3,18 +3,19 @@ import re
 from lib.cleaners import make_subject_uri, normalize_uri
 from lib.db import (
     get_claim,
+    get_credential,
     get_edge_by_endpoints,
     get_node_by_uri,
     insert_edge,
     insert_node,
-    unprocessed_claims_generator,
+    unprocessed_entities_generator,
 )
 from lib.infer import infer_details
 
 
-def get_or_create_node(node_uri, raw_claim, new_node=None):
+def get_or_create_node(node_uri, raw_entity, new_node=None):
     print("IN GET OR CREATE for " + node_uri)
-    node_uri = normalize_uri(node_uri, raw_claim["issuerId"])
+    node_uri = normalize_uri(node_uri, raw_entity["issuerId"])
     node = get_node_by_uri(node_uri)
     if node is None:
         if new_node is None:
@@ -58,18 +59,18 @@ def get_or_create_edge(start_node, end_node, label, claim_id):
     return edge
 
 
-def make_description(raw_claim):
+def make_description(raw_entity):
     descrip = ""
-    if raw_claim["score"]:
+    if raw_entity["score"]:
         descrip += "{} score: {:.2%}".format(
-            raw_claim.get("aspect", ""), raw_claim["score"]
+            raw_entity.get("aspect", ""), raw_entity["score"]
         )
 
-    if raw_claim["stars"]:
-        descrip += "{} out of 5".format(raw_claim["stars"])
+    if raw_entity["stars"]:
+        descrip += "{} out of 5".format(raw_entity["stars"])
 
-    if raw_claim["statement"]:
-        descrip += "\n" + raw_claim["statement"]
+    if raw_entity["statement"]:
+        descrip += "\n" + raw_entity["statement"]
     return descrip
 
 
@@ -79,36 +80,76 @@ def is_uri(string):
 
 
 def process_unprocessed():
-    for raw_claim in unprocessed_claims_generator():
-        process_claim(raw_claim)
+    for raw_entity in unprocessed_entities_generator():  # Update generator if needed to include credentials
+        process_entity(raw_entity)
 
 
-def process_targeted(claim_id):
-    # get claim by id
-    raw_claim = get_claim(claim_id)
-    process_claim(raw_claim)
+def process_targeted(entity_id, entity_type="claim"):
+    # Get claim or credential by id
+    raw_entity = get_claim(entity_id) if entity_type == "claim" else get_credential(entity_id)  # Ensure get_credential is defined
+    process_entity(raw_entity, entity_type)
 
 
-def process_claim(raw_claim):
+def process_entity(raw_entity, entity_type="claim"):
+    uri = raw_entity.get("claimAddress") or raw_entity.get("subject") or raw_entity.get("credentialSubject")
+    if not is_uri(uri):
+        print(f"{entity_type.capitalize()} Address or subject {uri} is NOT a valid URI, skipping")
+        return
+
+    subject_node = get_or_create_node(uri, raw_entity)
+    object_node = None
+    object_uri = raw_entity.get("object")
+
+    if object_uri:
+        object_node = get_or_create_node(object_uri, raw_entity)
+        print(f"Object not source: {object_uri}")
+
+    if object_node:
+        get_or_create_edge(subject_node, object_node, raw_entity["claim"], raw_entity["id"])
+    else:
+        source_node = None
+        source_uri = raw_entity.get("sourceURI")
+        if source_uri is not None:
+            source_node = get_or_create_node(source_uri, raw_entity)
+
+        # Create the entity node (claim/credential)
+        entity_uri = make_subject_uri(raw_entity)
+
+        entity_node = get_or_create_node(
+            entity_uri,
+            raw_entity,
+            {
+                "nodeUri": entity_uri,
+                "name": raw_entity["claim"] if entity_type == "claim" else raw_entity["credentialName"],
+                "entType": entity_type.upper(),
+                "descrip": make_description(raw_entity),
+            },
+        )
+
+        get_or_create_edge(subject_node, entity_node, raw_entity["claim"], raw_entity["id"])
+
+        if source_node:
+            get_or_create_edge(entity_node, source_node, "source", raw_entity["id"])
+
     # Create or update the nodes dictionary
-    uri = raw_claim["claimAddress"] or raw_claim["subject"]
+    uri = raw_entity["claimAddress"] or raw_entity["subject"]
     if not is_uri(uri):
         print(f"Claim Address or subject {uri} is NOT valid a URI, skipping")
         return
 
-    subject_node = get_or_create_node(uri, raw_claim)
+    subject_node = get_or_create_node(uri, raw_entity)
     object_node = None
-    object_uri = raw_claim["object"]
+    object_uri = raw_entity["object"]
 
     if object_uri:
-        object_node = get_or_create_node(raw_claim["object"], raw_claim)
+        object_node = get_or_create_node(raw_entity["object"], raw_entity)
         print("Object not source: " + object_uri)
     # if there is an object, the claim is just the relationship between the
     # subject and object likely something like "same_as" or "works_for"
     # currently we do not create a claim node for relationship claims
     if object_node:
         get_or_create_edge(
-            subject_node, object_node, raw_claim["claim"], raw_claim["id"]
+            subject_node, object_node, raw_entity["claim"], raw_entity["id"]
         )
 
     # TODO maybe include the source node somehow with this edge;
@@ -118,28 +159,28 @@ def process_claim(raw_claim):
     # in this case we make a claim node and also attach the source
     else:
         source_node = None
-        source_uri = raw_claim["sourceURI"]
+        source_uri = raw_entity["sourceURI"]
         if source_uri is not None:
-            source_node = get_or_create_node(raw_claim["sourceURI"], raw_claim)
+            source_node = get_or_create_node(raw_entity["sourceURI"], raw_entity)
 
         # Create the claim node
-        claim_uri = make_subject_uri(raw_claim)
+        claim_uri = make_subject_uri(raw_entity)
 
         claim_node = get_or_create_node(
             claim_uri,
-            raw_claim,
+            raw_entity,
             {
                 "nodeUri": claim_uri,
-                "name": raw_claim["claim"],
+                "name": raw_entity["claim"],
                 "entType": "CLAIM",
-                "descrip": make_description(raw_claim),
+                "descrip": make_description(raw_entity),
             },
         )
         # Create the edge from the subject node to the claim node
         get_or_create_edge(
-            subject_node, claim_node, raw_claim["claim"], raw_claim["id"]
+            subject_node, claim_node, raw_entity["claim"], raw_entity["id"]
         )
 
         # create the edge from the claim node to the source node
         if source_node:
-            get_or_create_edge(claim_node, source_node, "source", raw_claim["id"])
+            get_or_create_edge(claim_node, source_node, "source", raw_entity["id"])
