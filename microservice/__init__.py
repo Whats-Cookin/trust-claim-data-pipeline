@@ -21,4 +21,6 @@ if __name__ == "__main__":
 
     from lib.config import APP_PORT
 
-    serve(app, host="0.0.0.0", port=APP_PORT or 5000)
+    serve(app, host="0.0.0.0", port=APP_PORT or 5000,
+          threads=10,  # Adjust number of threads
+          connection_limit=100,  # Max concurrent connections)

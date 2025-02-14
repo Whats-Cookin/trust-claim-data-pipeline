@@ -1,24 +1,25 @@
 import psycopg2
-
+from psycopg2.pool import ThreadedConnectionPool
 from lib.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 
+# Initialize pool at module level
+pool = ThreadedConnectionPool(
+    minconn=1,
+    maxconn=10,
+    database=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT
+)
 
-# Connect to the PostgreSQL database
 def get_conn():
-    global conn
-    try:
-        # check if conn is open
-        conn.status
-    except (NameError, AttributeError, psycopg2.OperationalError):
-        # conn is closed or doesn't exist yet
-        conn = psycopg2.connect(
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
-    return conn
+    """Same function signature as before, but uses pool underneath"""
+    return pool.getconn()
+
+def cleanup():
+    if pool:
+        pool.closeall()
 
 def get_claim(claim_id):
     with get_conn().cursor() as cur:
@@ -86,10 +87,8 @@ def insert_data(table, data):
     conn = get_conn()
     quoted_keys = ['\"' + key + '\"' for key in data.keys()]
     query = f"INSERT INTO \"{table}\" ({', '.join(quoted_keys)}) VALUES ({', '.join(['%s']*len(data))}) RETURNING id;"
-    try:
-        return execute_sql_query(query, tuple(data.values()))['id']
-    except:
-        import pdb; pdb.set_trace()
+    return execute_sql_query(query, tuple(data.values()))['id']
+        
 
 def insert_node(node):
     """Insert a Node into the database."""
@@ -106,10 +105,8 @@ def get_node_by_uri(node_uri):
         FROM \"Node\"
         WHERE \"nodeUri\" = %s;
     """
-    try:
-        row = execute_sql_query(select_node_sql, (node_uri,))
-    except:
-        import pdb ; pdb.set_trace()
+    row = execute_sql_query(select_node_sql, (node_uri,))
+
     if row is None:
         print("{} not found in db".format(node_uri))
         return None
