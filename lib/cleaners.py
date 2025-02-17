@@ -25,6 +25,10 @@ def normalize_uri(uri, issuer_id=None):
             domain = parts[0].lower()
             path = "/" + parts[1] if len(parts) > 1 else ""
 
+    if parsed_url.query:
+        path = f"{path}?{parsed_url.query}"
+
+
     print(f"Domain: {domain}  Path:{path}")
 
     # Add the http or https prefix if necessary
