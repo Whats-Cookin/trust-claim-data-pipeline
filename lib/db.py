@@ -1,42 +1,85 @@
 import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 from contextlib import contextmanager
+try:
+    from flask import g, current_app
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+
 from lib.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 
-# Initialize pool at module level
-pool = ThreadedConnectionPool(
-    minconn=1,
-    maxconn=10,
-    database=DB_NAME,
-    user=DB_USER,
-    password=DB_PASSWORD,
-    host=DB_HOST,
-    port=DB_PORT
-)
+# Global pool for non-Flask contexts (like cron jobs)
+_global_pool = None
+
+def get_pool():
+    """Get or create the connection pool for both Flask and non-Flask contexts"""
+    global _global_pool
+    
+    if FLASK_AVAILABLE and current_app:
+        # If we're in a Flask context, use g
+        from flask import g
+        if not hasattr(g, 'db_pool'):
+            g.db_pool = ThreadedConnectionPool(
+                minconn=1,
+                maxconn=10,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                host=DB_HOST,
+                port=DB_PORT
+            )
+        return g.db_pool
+    else:
+        # We're not in a Flask context (e.g., cron job)
+        if _global_pool is None:
+            _global_pool = ThreadedConnectionPool(
+                minconn=1,
+                maxconn=10,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                host=DB_HOST,
+                port=DB_PORT
+            )
+        return _global_pool
+
+def cleanup():
+    """Cleanup function for non-Flask contexts"""
+    global _global_pool
+    if _global_pool is not None:
+        _global_pool.closeall()
+        _global_pool = None
+
+def init_app(app):
+    """Initialize the Flask application with database handling"""
+    def close_pool(e=None):
+        from flask import g
+        pool = getattr(g, 'db_pool', None)
+        if pool is not None:
+            pool.closeall()
+            g.pop('db_pool', None)
+            
+    app.teardown_appcontext(close_pool)
 
 @contextmanager
 def get_db_connection():
     """Context manager for database connections"""
+    pool = get_pool()
     conn = pool.getconn()
     try:
         yield conn
     finally:
-        pool.putconn(conn)
+        if not conn.closed:
+            conn.commit()  # Ensure any pending transaction is committed
+            pool.putconn(conn)
 
 @contextmanager
 def get_db_cursor():
     """Context manager for database cursors"""
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        try:
+        with conn.cursor() as cursor:
             yield cursor
-            conn.commit()
-        finally:
-            cursor.close()
-
-def cleanup():
-    if pool:
-        pool.closeall()
 
 def get_claim(claim_id):
     with get_db_cursor() as cur:
