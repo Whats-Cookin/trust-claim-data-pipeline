@@ -31,9 +31,10 @@ python __init__.py
 
 ## Simple Deployment
 
+From the repo root
 ```
 python3 -m venv venv
 pip install -r requirements.txt
-pm2 start venv/bin/python --name "trust-claim-data-pipeline" -- -m flask --app microservice run
+pm2 start /data/trust-claim-data-pipeline/run_microservice.sh --name trust-claim-data-pipeline --cwd /data/trust-claim-data-pipeline
 pm2 save
 ```

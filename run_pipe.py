@@ -1,3 +1,10 @@
 from claims_to_nodes import process_unprocessed
+from lib.db import cleanup
 
-process_unprocessed()
+try:
+    process_unprocessed()
+
+finally:
+    cleanup()
+
+
