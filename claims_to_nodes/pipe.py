@@ -16,29 +16,31 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     print("IN GET OR CREATE for " + node_uri)
     node_uri = normalize_uri(node_uri, raw_claim["issuerId"])
     node = get_node_by_uri(node_uri)
-    if node is None:
-        if new_node is None:
-            details = infer_details(node_uri, save_thumbnail=True)
+    # NOTE This was commented due to the return of ERROR 404 when a thumbnail is not found. We can ignore this error for now
+    # TODO : uncomment when a better implementation is in place
+    # if node is None:
+    #     if new_node is None:
+    #         details = infer_details(node_uri, save_thumbnail=True)
 
-            name = ""
-            thumbnail_uri = ""
+    #         name = ""
+    #         thumbnail_uri = ""
 
-            if details:
-                (name, thumbnail_uri) = details
+    #         if details:
+    #             (name, thumbnail_uri) = details
 
-            # TODO infer or default to UNKNOWN for later edit
-            entType = "ORGANIZATION"
-            node = {
-                "nodeUri": node_uri,
-                "name": name,
-                "entType": entType,
-                "thumbnail": thumbnail_uri,
-                "descrip": "",
-            }
-        else:
-            node = new_node
-        print("INSERTING " + node["nodeUri"])
-        node["id"] = insert_node(node)
+    #         # TODO infer or default to UNKNOWN for later edit
+    #         entType = "ORGANIZATION"
+    #         node = {
+    #             "nodeUri": node_uri,
+    #             "name": name,
+    #             "entType": entType,
+    #             "thumbnail": thumbnail_uri,
+    #             "descrip": "",
+    #         }
+    #     else:
+    #         node = new_node
+    #     print("INSERTING " + node["nodeUri"])
+    #     node["id"] = insert_node(node)
     # TODO possibly update the node if exists
     return node
 
