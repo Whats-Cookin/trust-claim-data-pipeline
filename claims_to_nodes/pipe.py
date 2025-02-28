@@ -18,29 +18,48 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     node = get_node_by_uri(node_uri)
     # NOTE This was commented due to the return of ERROR 404 when a thumbnail is not found. We can ignore this error for now
     # TODO : uncomment when a better implementation is in place
-    # if node is None:
-    #     if new_node is None:
-    #         details = infer_details(node_uri, save_thumbnail=True)
-
-    #         name = ""
-    #         thumbnail_uri = ""
-
-    #         if details:
-    #             (name, thumbnail_uri) = details
-
-    #         # TODO infer or default to UNKNOWN for later edit
-    #         entType = "ORGANIZATION"
-    #         node = {
-    #             "nodeUri": node_uri,
-    #             "name": name,
-    #             "entType": entType,
-    #             "thumbnail": thumbnail_uri,
-    #             "descrip": "",
-    #         }
-    #     else:
-    #         node = new_node
-    #     print("INSERTING " + node["nodeUri"])
-    #     node["id"] = insert_node(node)
+    if node is None:
+        if new_node is None:
+            try:
+                # Infer details with proper error handling
+                details = infer_details(node_uri, save_thumbnail=True)
+                
+                name = ""
+                thumbnail_uri = ""
+                
+                if details:
+                    (name, thumbnail_uri) = details
+                
+                # Create node with inferred or default details
+                node = {
+                    "nodeUri": node_uri,
+                    "name": name or "Unknown Resource",
+                    "entType": "ORGANIZATION",  # Default entity type
+                    "thumbnail": thumbnail_uri,
+                    "descrip": "",
+                }
+            except Exception as e:
+                print(f"Error inferring details: {e}")
+                # Create a minimal node to prevent future 404 errors
+                node = {
+                    "nodeUri": node_uri,
+                    "name": extract_fallback_name(node_uri),
+                    "entType": "ORGANIZATION",
+                    "thumbnail": "",
+                    "descrip": "",
+                }
+        else:
+            node = new_node
+            
+        # Insert node
+        try:
+            print(f"INSERTING {node['nodeUri']}")
+            node["id"] = insert_node(node)
+        except Exception as e:
+            print(f"Error inserting node: {e}")
+            # Node object is still returned even if insertion fails
+            
+    return node
     # TODO possibly update the node if exists
     return node
 
@@ -93,7 +112,8 @@ def process_targeted(claim_id):
 
 def process_claim(raw_claim):
     # Create or update the nodes dictionary
-    uri = raw_claim["claimAddress"] or raw_claim["subject"]
+    print(raw_claim)
+    uri = raw_claim.get("claimAddress") or raw_claim["subject"]
     if not is_uri(uri):
         print(f"Claim Address or subject {uri} is NOT valid a URI, skipping")
         return
