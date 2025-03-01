@@ -9,7 +9,7 @@ from lib.db import (
     insert_node,
     unprocessed_claims_generator,
 )
-from lib.infer import infer_details
+from lib.infer import extract_fallback_name, infer_details
 
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
