@@ -3,6 +3,7 @@
 import re
 from io import BytesIO
 from pprint import pprint
+from urllib.parse import urlparse
 
 import boto3
 import requests
