@@ -18,15 +18,15 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     node = get_node_by_uri(node_uri)
     if node is None:
         if new_node is None:
+            name = raw_claim.get("subject") or extract_fallback_name(node_uri)
             try:
                 # Infer details with proper error handling
                 details = infer_details(node_uri, save_thumbnail=True)
 
-                name = raw_claim.subject
                 thumbnail_uri = ""
 
                 if details:
-                    (name, thumbnail_uri) = details
+                    (_, thumbnail_uri) = details
 
                 # Create node with inferred or default details
                 node = {
@@ -41,7 +41,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
                 # Create a minimal node to prevent future 404 errors
                 node = {
                     "nodeUri": node_uri,
-                    "name": extract_fallback_name(node_uri),
+                    "name": name,
                     "entType": "ORGANIZATION",
                     "thumbnail": "",
                     "descrip": "",
