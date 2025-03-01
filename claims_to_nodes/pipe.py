@@ -9,27 +9,25 @@ from lib.db import (
     insert_node,
     unprocessed_claims_generator,
 )
-from lib.infer import infer_details
+from lib.infer import extract_fallback_name, infer_details
 
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
     print("IN GET OR CREATE for " + node_uri)
     node_uri = normalize_uri(node_uri, raw_claim["issuerId"])
     node = get_node_by_uri(node_uri)
-    # NOTE This was commented due to the return of ERROR 404 when a thumbnail is not found. We can ignore this error for now
-    # TODO : uncomment when a better implementation is in place
     if node is None:
         if new_node is None:
+            name = raw_claim.get("subject") or extract_fallback_name(node_uri)
             try:
                 # Infer details with proper error handling
                 details = infer_details(node_uri, save_thumbnail=True)
-                
-                name = ""
+
                 thumbnail_uri = ""
-                
+
                 if details:
-                    (name, thumbnail_uri) = details
-                
+                    (_, thumbnail_uri) = details
+
                 # Create node with inferred or default details
                 node = {
                     "nodeUri": node_uri,
@@ -43,14 +41,14 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
                 # Create a minimal node to prevent future 404 errors
                 node = {
                     "nodeUri": node_uri,
-                    "name": extract_fallback_name(node_uri),
+                    "name": name,
                     "entType": "ORGANIZATION",
                     "thumbnail": "",
                     "descrip": "",
                 }
         else:
             node = new_node
-            
+
         # Insert node
         try:
             print(f"INSERTING {node['nodeUri']}")
@@ -58,9 +56,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
         except Exception as e:
             print(f"Error inserting node: {e}")
             # Node object is still returned even if insertion fails
-            
-    return node
-    # TODO possibly update the node if exists
+
     return node
 
 
