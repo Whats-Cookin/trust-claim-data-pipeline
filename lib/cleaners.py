@@ -1,12 +1,19 @@
 import re
+import os
 from urllib.parse import urlparse, urlunparse
 
 import requests
 
 
+def get_base_url():
+    """Get the base URL for the application - single source of truth"""
+    return os.environ.get('FRONTEND_URL') or os.environ.get('BASE_URL') or 'https://live.linkedtrust.us'
+
+
 # if its just a word or string construct a uri for it
 def construct_uri(word, issuer_id="anon"):
-    return "https://linkedtrust.us/issuer/{}/labels/{}".format(issuer_id, word)
+    base_url = get_base_url()
+    return "{}/issuer/{}/labels/{}".format(base_url, issuer_id, word)
 
 
 # if its a valid uri or has a valid http or https return that
@@ -54,4 +61,5 @@ def normalize_uri(uri, issuer_id=None):
 def make_subject_uri(raw_claim):
     """Even tho we are interested in using claim address in future, for now we stick to
     the same method used by the app for consistency"""
-    return "https://live.linkedtrust.us/claims/{}".format(raw_claim["id"])
+    base_url = get_base_url()
+    return "{}/claims/{}".format(base_url, raw_claim["id"])
