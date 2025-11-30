@@ -1,4 +1,9 @@
 .env
+*.env
+*.swo
+*.csv
+staticfiles/
+penv
 admin_seed.txt
 node_modules
 package-lock.json

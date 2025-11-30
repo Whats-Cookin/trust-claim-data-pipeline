@@ -161,16 +161,16 @@ def insert_edge(edge):
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
     select_node_sql = """
-        SELECT id, "nodeUri", name, "entType", descrip, image, thumbnail
+        SELECT id, "nodeUri", name, "entType", descrip, image, thumbnail, "editedAt", "editedBy"
         FROM "Node"
         WHERE "nodeUri" = %s;
     """
     row = execute_sql_query(select_node_sql, (node_uri,))
-    
+
     if row is None:
         print("{} not found in db".format(node_uri))
         return None
-        
+
     return {
         "id": row["id"],
         "nodeUri": row["nodeUri"],
@@ -179,6 +179,8 @@ def get_node_by_uri(node_uri):
         "descrip": row["descrip"],
         "image": row["image"],
         "thumbnail": row["thumbnail"],
+        "editedAt": row["editedAt"],
+        "editedBy": row["editedBy"],
     }
 
 def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):

@@ -1,0 +1,2 @@
+. ../../penv/bin/activate
+python3 ../addclaims.py
