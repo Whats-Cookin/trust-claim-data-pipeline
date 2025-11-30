@@ -3,6 +3,7 @@ import re
 from lib.cleaners import make_subject_uri, normalize_uri
 from lib.db import (
     get_claim,
+    get_claim_image,
     get_edge_by_endpoints,
     get_node_by_uri,
     insert_edge,
@@ -52,6 +53,15 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
                 }
         else:
             node = new_node
+
+            # For CLAIM nodes, try to get image from Image table
+            if node.get('entType') == 'CLAIM':
+                claim_id = raw_claim.get('id')
+                if claim_id and not node.get('image'):
+                    image_url = get_claim_image(claim_id)
+                    if image_url:
+                        node['image'] = image_url
+                        print(f"Set image on CLAIM node from Image table: {image_url}")
 
         # Insert node
         try:
@@ -114,70 +124,61 @@ def process_targeted(claim_id):
 
 
 def process_claim(raw_claim):
-    # Create or update the nodes dictionary
+    """
+    NEW MODEL: All claims are nodes with subject/object/source edges.
+
+    Structure:
+      [Claim Node] --subject--> [Subject Node]
+      [Claim Node] --object--> [Object Node] (if object exists)
+      [Claim Node] --source--> [Source Node] (if source exists)
+
+    No special cases - every claim becomes a node.
+    """
     print(raw_claim)
-    uri = raw_claim.get("claimAddress") or raw_claim["subject"]
-    if not is_uri(uri):
-        print(f"Claim Address or subject {uri} is NOT valid a URI, skipping")
+
+    # Step 1: Create the claim node (ALWAYS)
+    claim_uri = make_subject_uri(raw_claim)
+    claim_node = get_or_create_node(
+        claim_uri,
+        raw_claim,
+        {
+            "nodeUri": claim_uri,
+            "name": raw_claim["claim"],
+            "entType": "CLAIM",
+            "descrip": make_description(raw_claim),
+        },
+    )
+    if claim_node is None:
+        print(f"ERROR: Failed to create claim node for claim {raw_claim['id']} - skipping")
         return
 
-    subject_node = get_or_create_node(uri, raw_claim)
+    # Step 2: Create subject node and edge: claim --subject--> subject
+    subject_uri = raw_claim["subject"]
+    if not is_uri(subject_uri):
+        print(f"Subject {subject_uri} is NOT a valid URI, skipping claim {raw_claim['id']}")
+        return
+
+    subject_node = get_or_create_node(subject_uri, raw_claim)
     if subject_node is None:
-        print(f"ERROR: Failed to create subject node for claim {raw_claim['id']} - skipping claim")
+        print(f"ERROR: Failed to create subject node for claim {raw_claim['id']} - skipping")
         return
-        
-    object_node = None
+
+    get_or_create_edge(claim_node, subject_node, "subject", raw_claim["id"])
+
+    # Step 3: Create object node and edge if object exists: claim --object--> object
     object_uri = raw_claim["object"]
-
     if object_uri:
-        object_node = get_or_create_node(raw_claim["object"], raw_claim)
+        object_node = get_or_create_node(object_uri, raw_claim)
         if object_node is None:
-            print(f"ERROR: Failed to create object node for claim {raw_claim['id']} - skipping claim")
-            return
-        print("Object not source: " + object_uri)
-    # if there is an object, the claim is just the relationship between the
-    # subject and object likely something like "same_as" or "works_for"
-    # currently we do not create a claim node for relationship claims
-    if object_node:
-        get_or_create_edge(
-            subject_node, object_node, raw_claim["claim"], raw_claim["id"]
-        )
+            print(f"WARNING: Failed to create object node for claim {raw_claim['id']} - continuing without object")
+        else:
+            get_or_create_edge(claim_node, object_node, "object", raw_claim["id"])
 
-    # TODO maybe include the source node somehow with this edge;
-    # for now the claim itself is enough
-
-    # there is no object, so the point is to attach the claim to the subject
-    # in this case we make a claim node and also attach the source
-    else:
-        source_node = None
-        source_uri = raw_claim["sourceURI"]
-        if source_uri is not None:
-            source_node = get_or_create_node(raw_claim["sourceURI"], raw_claim)
-            if source_node is None:
-                print(f"WARNING: Failed to create source node for claim {raw_claim['id']} - continuing without source")
-
-        # Create the claim node
-        claim_uri = make_subject_uri(raw_claim)
-
-        claim_node = get_or_create_node(
-            claim_uri,
-            raw_claim,
-            {
-                "nodeUri": claim_uri,
-                "name": raw_claim["claim"],
-                "entType": "CLAIM",
-                "descrip": make_description(raw_claim),
-            },
-        )
-        if claim_node is None:
-            print(f"ERROR: Failed to create claim node for claim {raw_claim['id']} - skipping")
-            return
-            
-        # Create the edge from the subject node to the claim node
-        get_or_create_edge(
-            subject_node, claim_node, raw_claim["claim"], raw_claim["id"]
-        )
-
-        # create the edge from the claim node to the source node
-        if source_node:
+    # Step 4: Create source node and edge if source exists: claim --source--> source
+    source_uri = raw_claim["sourceURI"]
+    if source_uri is not None:
+        source_node = get_or_create_node(source_uri, raw_claim)
+        if source_node is None:
+            print(f"WARNING: Failed to create source node for claim {raw_claim['id']} - continuing without source")
+        else:
             get_or_create_edge(claim_node, source_node, "source", raw_claim["id"])
