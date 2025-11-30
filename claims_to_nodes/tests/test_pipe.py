@@ -93,10 +93,28 @@ class TestPipe(unittest.TestCase):
 
     def test_is_uri(self):
         """Test URI validation"""
-        assert is_uri("http://example.com")
-        assert is_uri("https://example.com/path")
-        assert not is_uri("not a uri")
-        assert not is_uri("http:/missing-slashes")
+        # Valid URIs with schemes
+        valid_uris = [
+            ("http://example.com", True),
+            ("https://example.com/path", True),
+            ("ftp://ftp.example.com", True),
+            ("urn:isbn:0451450523", True),
+            ("did:example:123456789abcdefghi", True),
+        ]
+        
+        # Invalid URIs - no scheme or malformed
+        invalid_uris = [
+            ("not a uri", False),
+            ("http:/missing-slashes", False),
+            ("123", False),  # Bare number
+            ("456", False),  # Another bare number
+            ("example.com", False),  # No scheme
+            ("//example.com", False),  # No scheme, just authority
+        ]
+        
+        for uri, expected in valid_uris + invalid_uris:
+            with self.subTest(uri=uri):
+                assert is_uri(uri) == expected
 
     @patch(PATCH_BASE + "get_or_create_node")
     @patch(PATCH_BASE + "get_or_create_edge")

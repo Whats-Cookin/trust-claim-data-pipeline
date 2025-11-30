@@ -14,7 +14,11 @@ from lib.infer import extract_fallback_name, infer_details
 
 def get_or_create_node(node_uri, raw_claim, new_node=None):
     print("IN GET OR CREATE for " + node_uri)
-    node_uri = normalize_uri(node_uri, raw_claim["issuerId"])
+    normalized_uri = normalize_uri(node_uri, raw_claim["issuerId"])
+    if normalized_uri is None:
+        print(f"ERROR: Failed to normalize URI '{node_uri}' - skipping node creation")
+        return None
+    node_uri = normalized_uri
     node = get_node_by_uri(node_uri)
     if node is None:
         if new_node is None:
@@ -62,6 +66,9 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
 
 def get_or_create_edge(start_node, end_node, label, claim_id):
     print("IN GET OR CREATE EDGE for {}".format(claim_id))
+    if start_node is None or end_node is None:
+        print(f"ERROR: Cannot create edge for claim {claim_id} - one or both nodes are None")
+        return None
     edge = get_edge_by_endpoints(start_node["id"], end_node["id"], claim_id)
     if edge is None:
         edge = {
@@ -115,11 +122,18 @@ def process_claim(raw_claim):
         return
 
     subject_node = get_or_create_node(uri, raw_claim)
+    if subject_node is None:
+        print(f"ERROR: Failed to create subject node for claim {raw_claim['id']} - skipping claim")
+        return
+        
     object_node = None
     object_uri = raw_claim["object"]
 
     if object_uri:
         object_node = get_or_create_node(raw_claim["object"], raw_claim)
+        if object_node is None:
+            print(f"ERROR: Failed to create object node for claim {raw_claim['id']} - skipping claim")
+            return
         print("Object not source: " + object_uri)
     # if there is an object, the claim is just the relationship between the
     # subject and object likely something like "same_as" or "works_for"
@@ -139,6 +153,8 @@ def process_claim(raw_claim):
         source_uri = raw_claim["sourceURI"]
         if source_uri is not None:
             source_node = get_or_create_node(raw_claim["sourceURI"], raw_claim)
+            if source_node is None:
+                print(f"WARNING: Failed to create source node for claim {raw_claim['id']} - continuing without source")
 
         # Create the claim node
         claim_uri = make_subject_uri(raw_claim)
@@ -153,6 +169,10 @@ def process_claim(raw_claim):
                 "descrip": make_description(raw_claim),
             },
         )
+        if claim_node is None:
+            print(f"ERROR: Failed to create claim node for claim {raw_claim['id']} - skipping")
+            return
+            
         # Create the edge from the subject node to the claim node
         get_or_create_edge(
             subject_node, claim_node, raw_claim["claim"], raw_claim["id"]

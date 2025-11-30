@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from io import BytesIO
@@ -19,7 +20,7 @@ try:
 except ImportError:
     SELENIUM_AVAILABLE = False
 
-from lib.cleaners import construct_uri, make_subject_uri, normalize_uri
+from lib.cleaners import construct_uri, make_subject_uri, normalize_uri, get_base_url
 from lib.db import (
     del_claim,
     execute_sql_query,
@@ -54,11 +55,12 @@ def check_chrome_installed():
 
 
 # Cleaners tests
+@patch.dict("os.environ", {}, clear=True)
 def test_construct_uri():
-    assert construct_uri("test") == "https://linkedtrust.us/issuer/anon/labels/test"
+    assert construct_uri("test") == "https://live.linkedtrust.us/issuer/anon/labels/test"
     assert (
         construct_uri("test", "custom")
-        == "https://linkedtrust.us/issuer/custom/labels/test"
+        == "https://live.linkedtrust.us/issuer/custom/labels/test"
     )
 
 
@@ -81,10 +83,56 @@ def test_normalize_uri(mock_get, input_uri, expected):
     assert normalize_uri(input_uri) == expected
 
 
+# Test normalize_uri with numeric inputs (should return URI unchanged)
+@pytest.mark.parametrize(
+    "input_uri,issuer_id,expected_contains",
+    [
+        ("123", "anon", "123"),  # Bare number should be returned as-is
+        ("456", "user123", "456"),  # Bare number with issuer
+        ("https://example.com/123", None, "https://example.com/123"),  # Valid URI
+    ],
+)
+def test_normalize_uri_numeric_inputs(input_uri, issuer_id, expected_contains):
+    result = normalize_uri(input_uri, issuer_id)
+    assert expected_contains in result
+
+
+@patch.dict("os.environ", {}, clear=True)
 def test_make_subject_uri():
     raw_claim = {"id": "123"}
     expected = "https://live.linkedtrust.us/claims/123"
     assert make_subject_uri(raw_claim) == expected
+
+
+@patch.dict("os.environ", {"FRONTEND_URL": "https://test.com"})
+def test_make_subject_uri_with_env():
+    raw_claim = {"id": "456"}
+    expected = "https://test.com/claims/456"
+    assert make_subject_uri(raw_claim) == expected
+
+
+# Test get_base_url with environment variables
+@patch.dict("os.environ", {}, clear=True)
+def test_get_base_url_default():
+    assert get_base_url() == "https://live.linkedtrust.us"
+
+
+@patch.dict("os.environ", {"BASE_URL": "https://test.example.com"})
+def test_get_base_url_with_base_url():
+    assert get_base_url() == "https://test.example.com"
+
+
+@patch.dict("os.environ", {"FRONTEND_URL": "https://frontend.example.com"})
+def test_get_base_url_with_frontend_url():
+    assert get_base_url() == "https://frontend.example.com"
+
+
+@patch.dict("os.environ", {
+    "BASE_URL": "https://test.example.com",
+    "FRONTEND_URL": "https://frontend.example.com"
+})
+def test_get_base_url_frontend_takes_precedence():
+    assert get_base_url() == "https://frontend.example.com"
 
 
 # Database tests
