@@ -151,12 +151,65 @@ def insert_data(table, data):
     return result['id'] if result else None
 
 def insert_node(node):
-    """Insert a Node into the database."""
-    return insert_data("Node", node)
+    """Insert a Node into the database using INSERT ON CONFLICT to prevent duplicates.
+
+    If a node with the same nodeUri already exists:
+    - If the existing node has no image and the new node has an image, update it
+    - Otherwise, return the existing node's ID
+    """
+    quoted_keys = ['"' + key + '"' for key in node.keys()]
+    placeholders = ["%s"] * len(node)
+
+    # Build the INSERT ... ON CONFLICT query
+    query = f'''
+        INSERT INTO "Node" ({", ".join(quoted_keys)})
+        VALUES ({", ".join(placeholders)})
+        ON CONFLICT ("nodeUri") DO UPDATE SET
+            image = CASE
+                WHEN ("Node".image IS NULL OR "Node".image = '') AND EXCLUDED.image IS NOT NULL
+                THEN EXCLUDED.image
+                ELSE "Node".image
+            END,
+            thumbnail = CASE
+                WHEN ("Node".thumbnail IS NULL OR "Node".thumbnail = '') AND EXCLUDED.thumbnail IS NOT NULL
+                THEN EXCLUDED.thumbnail
+                ELSE "Node".thumbnail
+            END
+        RETURNING id;
+    '''
+
+    result = execute_sql_query(query, tuple(node.values()))
+    return result['id'] if result else None
 
 def insert_edge(edge):
-    """Insert an Edge into the database."""
-    return insert_data("Edge", edge)
+    """Insert an Edge into the database using INSERT ON CONFLICT to prevent duplicates.
+
+    New model: Each claim can only have ONE edge of each label type (subject/object/source).
+    If an edge with the same startNodeId, label, claimId already exists,
+    return the existing edge's ID.
+    """
+    quoted_keys = ['"' + key + '"' for key in edge.keys()]
+    placeholders = ["%s"] * len(edge)
+
+    query = f'''
+        INSERT INTO "Edge" ({', '.join(quoted_keys)})
+        VALUES ({', '.join(placeholders)})
+        ON CONFLICT ("startNodeId", label, "claimId") DO NOTHING
+        RETURNING id;
+    '''
+
+    result = execute_sql_query(query, tuple(edge.values()))
+
+    # If result is None, the edge already exists - fetch its ID
+    if result is None:
+        existing = get_edge_by_label(
+            edge.get('startNodeId'),
+            edge.get('label'),
+            edge.get('claimId')
+        )
+        return existing['id'] if existing else None
+
+    return result['id']
 
 def get_node_by_uri(node_uri):
     """Retrieve a Node from the database by its nodeUri value."""
@@ -181,8 +234,36 @@ def get_node_by_uri(node_uri):
         "thumbnail": row["thumbnail"],
     }
 
+def get_edge_by_label(start_node_id, label, claim_id):
+    """Retrieve an Edge from the database by startNodeId, label, and claimId.
+
+    New model: Each claim has at most ONE edge of each label type (subject/object/source).
+    """
+    select_edge_sql = """
+        SELECT id, "startNodeId", "endNodeId", label, thumbnail, "claimId"
+        FROM "Edge"
+        WHERE "startNodeId" = %s AND label = %s AND "claimId" = %s;
+    """
+    row = execute_sql_query(select_edge_sql, (start_node_id, label, claim_id))
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "startNodeId": row["startNodeId"],
+        "endNodeId": row["endNodeId"],
+        "label": row["label"],
+        "thumbnail": row["thumbnail"],
+        "claimId": row["claimId"],
+    }
+
+# Keep old function name for backwards compatibility during transition
 def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
-    """Retrieve an Edge from the database by the IDs of its start and end Nodes."""
+    """DEPRECATED: Use get_edge_by_label instead.
+
+    This function is kept for backwards compatibility but may not work correctly
+    with the new claims-as-nodes model where uniqueness is based on (startNodeId, label, claimId).
+    """
     select_edge_sql = """
         SELECT id, "startNodeId", "endNodeId", label, thumbnail, "claimId"
         FROM "Edge"
@@ -200,6 +281,15 @@ def get_edge_by_endpoints(start_node_id, end_node_id, claim_id):
         "thumbnail": row["thumbnail"],
         "claimId": row["claimId"],
     }
+
+def get_claim_image(claim_id):
+    """Get the first image URL for a claim from the Image table.
+
+    Returns the image URL if found, None otherwise.
+    """
+    query = 'SELECT url FROM "Image" WHERE "claimId" = %s LIMIT 1'
+    result = execute_sql_query(query, (claim_id,))
+    return result['url'] if result else None
 
 def del_claim(claim_id):
     if not claim_id:
