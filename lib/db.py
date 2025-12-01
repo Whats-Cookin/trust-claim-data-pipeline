@@ -181,6 +181,17 @@ def insert_node(node):
     result = execute_sql_query(query, tuple(node.values()))
     return result['id'] if result else None
 
+
+def update_node_type(node_id, ent_type):
+    """Update the entType of an existing node."""
+    query = '''
+        UPDATE "Node"
+        SET "entType" = %s
+        WHERE id = %s
+    '''
+    execute_sql_query(query, (ent_type, node_id))
+
+
 def insert_edge(edge):
     """Insert an Edge into the database using INSERT ON CONFLICT to prevent duplicates.
 

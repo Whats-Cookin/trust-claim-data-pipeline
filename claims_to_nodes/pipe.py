@@ -9,6 +9,7 @@ from lib.db import (
     insert_edge,
     insert_node,
     unprocessed_claims_generator,
+    update_node_type,
 )
 from lib.infer import extract_fallback_name, infer_details
 
@@ -20,56 +21,65 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
         print(f"ERROR: Failed to normalize URI '{node_uri}' - skipping node creation")
         return None
     node_uri = normalized_uri
-    node = get_node_by_uri(node_uri)
-    if node is None:
-        if new_node is None:
-            name = extract_fallback_name(node_uri)
-            try:
-                # Infer details with proper error handling
-                details = infer_details(node_uri, save_thumbnail=True)
+    existing_node = get_node_by_uri(node_uri)
 
-                thumbnail_uri = ""
+    # If node exists and we're trying to set it as CLAIM, ensure entType is correct
+    if existing_node is not None:
+        if new_node and new_node.get('entType') == 'CLAIM' and existing_node.get('entType') != 'CLAIM':
+            print(f"Updating existing node {node_uri} from {existing_node.get('entType')} to CLAIM")
+            update_node_type(existing_node['id'], 'CLAIM')
+            existing_node['entType'] = 'CLAIM'
+        return existing_node
 
-                if details:
-                    (_, thumbnail_uri) = details
-
-                # Create node with inferred or default details
-                node = {
-                    "nodeUri": node_uri,
-                    "name": name or "Unknown Resource",
-                    "entType": "ORGANIZATION",  # Default entity type
-                    "thumbnail": thumbnail_uri,
-                    "descrip": "",
-                }
-            except Exception as e:
-                print(f"Error inferring details: {e}")
-                # Create a minimal node to prevent future 404 errors
-                node = {
-                    "nodeUri": node_uri,
-                    "name": name,
-                    "entType": "ORGANIZATION",
-                    "thumbnail": "",
-                    "descrip": "",
-                }
-        else:
-            node = new_node
-
-            # For CLAIM nodes, try to get image from Image table
-            if node.get('entType') == 'CLAIM':
-                claim_id = raw_claim.get('id')
-                if claim_id and not node.get('image'):
-                    image_url = get_claim_image(claim_id)
-                    if image_url:
-                        node['image'] = image_url
-                        print(f"Set image on CLAIM node from Image table: {image_url}")
-
-        # Insert node
+    # Node doesn't exist, create it
+    if new_node is None:
+        name = extract_fallback_name(node_uri)
         try:
-            print(f"INSERTING {node['nodeUri']}")
-            node["id"] = insert_node(node)
+            # Infer details with proper error handling
+            details = infer_details(node_uri, save_thumbnail=True)
+
+            thumbnail_uri = ""
+
+            if details:
+                (_, thumbnail_uri) = details
+
+            # Create node with inferred or default details
+            node = {
+                "nodeUri": node_uri,
+                "name": name or "Unknown Resource",
+                "entType": "ORGANIZATION",  # Default entity type
+                "thumbnail": thumbnail_uri,
+                "descrip": "",
+            }
         except Exception as e:
-            print(f"Error inserting node: {e}")
-            # Node object is still returned even if insertion fails
+            print(f"Error inferring details: {e}")
+            # Create a minimal node to prevent future 404 errors
+            node = {
+                "nodeUri": node_uri,
+                "name": name,
+                "entType": "ORGANIZATION",
+                "thumbnail": "",
+                "descrip": "",
+            }
+    else:
+        node = new_node
+
+        # For CLAIM nodes, try to get image from Image table
+        if node.get('entType') == 'CLAIM':
+            claim_id = raw_claim.get('id')
+            if claim_id and not node.get('image'):
+                image_url = get_claim_image(claim_id)
+                if image_url:
+                    node['image'] = image_url
+                    print(f"Set image on CLAIM node from Image table: {image_url}")
+
+    # Insert node
+    try:
+        print(f"INSERTING {node['nodeUri']}")
+        node["id"] = insert_node(node)
+    except Exception as e:
+        print(f"Error inserting node: {e}")
+        # Node object is still returned even if insertion fails
 
     return node
 
