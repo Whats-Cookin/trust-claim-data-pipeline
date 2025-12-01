@@ -34,6 +34,8 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     # Node doesn't exist, create it
     if new_node is None:
         name = extract_fallback_name(node_uri)
+        # Infer entity type from URI patterns
+        ent_type = infer_entity_type(node_uri)
         try:
             # Infer details with proper error handling
             details = infer_details(node_uri, save_thumbnail=True)
@@ -47,7 +49,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
             node = {
                 "nodeUri": node_uri,
                 "name": name or "Unknown Resource",
-                "entType": "ORGANIZATION",  # Default entity type
+                "entType": ent_type,
                 "thumbnail": thumbnail_uri,
                 "descrip": "",
             }
@@ -57,7 +59,7 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
             node = {
                 "nodeUri": node_uri,
                 "name": name,
-                "entType": "ORGANIZATION",
+                "entType": ent_type,
                 "thumbnail": "",
                 "descrip": "",
             }
@@ -122,6 +124,42 @@ def is_uri(string):
     return bool(re.match(pattern, string))
 
 
+def infer_entity_type(uri):
+    """
+    Infer entity type from URI patterns for subject/object/source nodes.
+    CLAIM nodes are handled separately with explicit entType.
+    """
+    uri_lower = uri.lower()
+
+    # LinkedIn personal profiles
+    if 'linkedin.com/in/' in uri_lower:
+        return 'PERSON'
+
+    # LinkedIn company pages
+    if 'linkedin.com/company/' in uri_lower:
+        return 'ORGANIZATION'
+
+    # Twitter/X profiles
+    if 'twitter.com/' in uri_lower or 'x.com/' in uri_lower:
+        # Exclude common non-profile paths
+        if not any(path in uri_lower for path in ['/status/', '/search', '/explore', '/home', '/i/']):
+            return 'PERSON'
+
+    # Bluesky profiles
+    if 'bsky.app/profile/' in uri_lower or 'bsky.social' in uri_lower:
+        return 'PERSON'
+
+    # GitHub profiles (single path segment = user profile)
+    if 'github.com/' in uri_lower:
+        path = uri_lower.split('github.com/')[-1].strip('/')
+        segments = [s for s in path.split('/') if s]
+        if len(segments) == 1:
+            return 'PERSON'
+
+    # Default to ORGANIZATION for other URIs (websites, domains, etc.)
+    return 'ORGANIZATION'
+
+
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
         process_claim(raw_claim)
@@ -156,6 +194,7 @@ def process_claim(raw_claim):
             "name": raw_claim["claim"],
             "entType": "CLAIM",
             "descrip": make_description(raw_claim),
+            "claimId": raw_claim["id"],  # Link claim node to its source claim
         },
     )
     if claim_node is None:
