@@ -2,6 +2,7 @@ import re
 
 from lib.cleaners import make_subject_uri, normalize_uri
 from lib.db import (
+    all_claims_generator,
     get_claim,
     get_claim_image,
     get_edge_by_endpoints,
@@ -162,6 +163,12 @@ def infer_entity_type(uri):
 
 def process_unprocessed():
     for raw_claim in unprocessed_claims_generator():
+        process_claim(raw_claim)
+
+
+def process_all():
+    """Process ALL claims, not just new ones. Use for regenerating all nodes/edges."""
+    for raw_claim in all_claims_generator():
         process_claim(raw_claim)
 
 

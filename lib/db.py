@@ -97,13 +97,28 @@ def unprocessed_claims_generator():
         QUERY_LATEST_CLAIMID = 'SELECT MAX("claimId") FROM "Edge"'
         cur.execute(QUERY_LATEST_CLAIMID)
         latest_claimid = cur.fetchone()[0] or 0
-        
+
         # Read data from the Claim model
         cur.execute(
             'SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score, stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence, "issuerId", "issuerIdType", "claimAddress", proof FROM "Claim" WHERE id > %s',
             (latest_claimid,)
         )
-        
+
+        columns = [desc[0] for desc in cur.description]
+        while True:
+            rows = cur.fetchmany(1000)  # Fetch in batches of 1000
+            if not rows:
+                break
+            for row in rows:
+                yield dict(zip(columns, row))
+
+def all_claims_generator():
+    """Generator that yields ALL claims for reprocessing."""
+    with get_db_cursor() as cur:
+        cur.execute(
+            'SELECT id, subject, claim, object, statement, "effectiveDate", "sourceURI", "howKnown", "dateObserved", "digestMultibase", author, curator, aspect, score, stars, amt, unit, "howMeasured", "intendedAudience", "respondAt", confidence, "issuerId", "issuerIdType", "claimAddress", proof FROM "Claim" ORDER BY id'
+        )
+
         columns = [desc[0] for desc in cur.description]
         while True:
             rows = cur.fetchmany(1000)  # Fetch in batches of 1000
