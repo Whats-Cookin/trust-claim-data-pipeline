@@ -15,7 +15,7 @@ from lib.db import (
 from lib.infer import extract_fallback_name, infer_details
 
 
-def get_or_create_node(node_uri, raw_claim, new_node=None):
+def get_or_create_node(node_uri, raw_claim, new_node=None, subject_entity_type_hint=None):
     print("IN GET OR CREATE for " + node_uri)
     normalized_uri = normalize_uri(node_uri, raw_claim["issuerId"])
     if normalized_uri is None:
@@ -35,8 +35,12 @@ def get_or_create_node(node_uri, raw_claim, new_node=None):
     # Node doesn't exist, create it
     if new_node is None:
         name = extract_fallback_name(node_uri)
-        # Infer entity type from URI patterns
-        ent_type = infer_entity_type(node_uri)
+        # Use hint if provided, otherwise infer entity type from URI patterns
+        if subject_entity_type_hint:
+            ent_type = subject_entity_type_hint
+            print(f"Using entity type hint: {ent_type}")
+        else:
+            ent_type = infer_entity_type(node_uri)
         try:
             # Infer details with proper error handling
             details = infer_details(node_uri, save_thumbnail=True)
@@ -172,13 +176,13 @@ def process_all():
         process_claim(raw_claim)
 
 
-def process_targeted(claim_id):
+def process_targeted(claim_id, subject_entity_type=None):
     # get claim by id
     raw_claim = get_claim(claim_id)
-    process_claim(raw_claim)
+    process_claim(raw_claim, subject_entity_type)
 
 
-def process_claim(raw_claim):
+def process_claim(raw_claim, subject_entity_type=None):
     """
     NEW MODEL: All claims are nodes with subject/object/source edges.
 
@@ -188,6 +192,10 @@ def process_claim(raw_claim):
       [Claim Node] --source--> [Source Node] (if source exists)
 
     No special cases - every claim becomes a node.
+
+    Args:
+        raw_claim: The claim data from the database
+        subject_entity_type: Optional hint for subject entity type (PERSON/ORGANIZATION)
     """
     print(raw_claim)
 
@@ -214,7 +222,8 @@ def process_claim(raw_claim):
         print(f"Subject {subject_uri} is NOT a valid URI, skipping claim {raw_claim['id']}")
         return
 
-    subject_node = get_or_create_node(subject_uri, raw_claim)
+    # Use the hint if provided, otherwise infer from URI
+    subject_node = get_or_create_node(subject_uri, raw_claim, subject_entity_type_hint=subject_entity_type)
     if subject_node is None:
         print(f"ERROR: Failed to create subject node for claim {raw_claim['id']} - skipping")
         return
