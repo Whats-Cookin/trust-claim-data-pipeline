@@ -125,8 +125,18 @@ def make_description(raw_claim):
 
 
 def is_uri(string):
-    pattern = re.compile(r"^(?:\w+:)?//([^\s/$.?#].[^\s]*)?$")
-    return bool(re.match(pattern, string))
+    """
+    Check if string is a valid URI.
+    A valid URI has a scheme followed by a colon and some content.
+    Examples: http://..., https://..., did:..., urn:..., mailto:...
+    """
+    if not string or not isinstance(string, str):
+        return False
+
+    # A valid URI must have a scheme (letters, digits, +, -, .) followed by :
+    # and then some non-whitespace content
+    uri_pattern = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:[^\s]+$")
+    return bool(re.match(uri_pattern, string))
 
 
 def infer_entity_type(uri):
