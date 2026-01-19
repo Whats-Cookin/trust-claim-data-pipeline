@@ -194,14 +194,17 @@ def process_targeted(claim_id, subject_entity_type=None):
 
 def process_claim(raw_claim, subject_entity_type=None):
     """
-    NEW MODEL: All claims are nodes with subject/object/source edges.
+    Process a claim into nodes and edges.
 
-    Structure:
+    SPECIAL CASE - SAME_AS claims:
+      ONLY creates: [Subject Node] --same_as--> [Object Node]
+      No claim node, no subject/object/source edges.
+      This enables frontend to merge identity-equivalent nodes.
+
+    ALL OTHER claims:
       [Claim Node] --subject--> [Subject Node]
       [Claim Node] --object--> [Object Node] (if object exists)
       [Claim Node] --source--> [Source Node] (if source exists)
-
-    No special cases - every claim becomes a node.
 
     Args:
         raw_claim: The claim data from the database
@@ -209,7 +212,41 @@ def process_claim(raw_claim, subject_entity_type=None):
     """
     print(raw_claim)
 
-    # Step 1: Create the claim node (ALWAYS)
+    claim_type = raw_claim.get("claim", "").upper()
+
+    # SPECIAL CASE: SAME_AS claims create ONLY a direct edge between subject and object
+    # No claim node, no subject/object/source edges
+    if claim_type == "SAME_AS":
+        subject_uri = raw_claim["subject"]
+        object_uri = raw_claim["object"]
+
+        if not is_uri(subject_uri):
+            print(f"Subject {subject_uri} is NOT a valid URI, skipping SAME_AS claim {raw_claim['id']}")
+            return
+
+        if not object_uri or not is_uri(object_uri):
+            print(f"Object {object_uri} is NOT a valid URI, skipping SAME_AS claim {raw_claim['id']}")
+            return
+
+        # Create subject and object nodes
+        subject_node = get_or_create_node(subject_uri, raw_claim, subject_entity_type_hint=subject_entity_type)
+        if subject_node is None:
+            print(f"ERROR: Failed to create subject node for SAME_AS claim {raw_claim['id']} - skipping")
+            return
+
+        object_node = get_or_create_node(object_uri, raw_claim)
+        if object_node is None:
+            print(f"ERROR: Failed to create object node for SAME_AS claim {raw_claim['id']} - skipping")
+            return
+
+        # Create ONLY the same_as edge - no claim node, no subject/object/source edges
+        get_or_create_edge(subject_node, object_node, "same_as", raw_claim["id"])
+        print(f"Created same_as edge between {subject_uri} and {object_uri} (SAME_AS claim {raw_claim['id']})")
+        return
+
+    # STANDARD CASE: All other claims become nodes with subject/object/source edges
+
+    # Step 1: Create the claim node
     claim_uri = make_subject_uri(raw_claim)
     claim_node = get_or_create_node(
         claim_uri,
