@@ -1,0 +1,7 @@
+{
+  "source": "GiveDirectly",
+  "source_url": "https://www.givedirectly.org/financials/",
+  "claim": "delivered_cash",
+  "howknown": "WEB_DOCUMENT",
+  "note": "Headline program claim. Recipient accounts (GDLive) are not openly fetchable; independent verification via RaiseTheVoices volunteers (signed, FIRST_HAND) is the intended path."
+}
