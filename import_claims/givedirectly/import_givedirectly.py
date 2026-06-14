@@ -54,14 +54,29 @@ def fetch_og_image(url):
         return None
 
 
+def _cfg(key, default=None):
+    return os.environ.get(key) or ENV.get(key, default)
+
+
+def connect():
+    url = _cfg("DATABASE_URL")
+    if url:
+        return psycopg2.connect(url)
+    return psycopg2.connect(
+        host=_cfg("DB_HOST"), dbname=_cfg("DB_NAME"), user=_cfg("DB_USER"),
+        password=_cfg("DB_PASSWORD"), port=_cfg("DB_PORT", "5432"))
+
+
 def main():
-    conn = psycopg2.connect(
-        host=ENV["DB_HOST"], dbname=ENV["DB_NAME"], user=ENV["DB_USER"],
-        password=ENV["DB_PASSWORD"], port=ENV.get("DB_PORT", "5432"))
+    conn = connect()
     cur = conn.cursor()
     cur.execute("""SELECT id FROM "User" WHERE name='SPIDER' LIMIT 1""")
     row = cur.fetchone()
-    issuer = f"http://trustclaims.whatscookin.us/users/{row[0] if row else 1}"
+    if not row:
+        cur.execute("""INSERT INTO "User"(name, email, "authType")
+                       VALUES('SPIDER', 'spider@linkedtrust.us', 'PASSWORD') RETURNING id""")
+        row = cur.fetchone()
+    issuer = f"http://trustclaims.whatscookin.us/users/{row[0]}"
 
     cur.execute("""SELECT id FROM "Claim" WHERE subject=%s AND claim=%s""",
                 (SUBJECT, CLAIM["claim"]))

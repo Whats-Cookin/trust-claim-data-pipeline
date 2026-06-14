@@ -45,17 +45,37 @@ def gql(query):
     return out["data"]
 
 
+def _cfg(key, default=None):
+    # env var wins over .env, so prod can override without editing files
+    return os.environ.get(key) or ENV.get(key, default)
+
+
 def db():
+    url = _cfg("DATABASE_URL")
+    if url:
+        return psycopg2.connect(url)
     return psycopg2.connect(
-        host=ENV["DB_HOST"], dbname=ENV["DB_NAME"], user=ENV["DB_USER"],
-        password=ENV["DB_PASSWORD"], port=ENV.get("DB_PORT", "5432"))
+        host=_cfg("DB_HOST"), dbname=_cfg("DB_NAME"), user=_cfg("DB_USER"),
+        password=_cfg("DB_PASSWORD"), port=_cfg("DB_PORT", "5432"))
 
 
 def spider_issuer(cur):
+    """Return the SPIDER issuer URI, creating the SPIDER user if absent.
+
+    Never silently fall back to user 1 — on prod that is a real person.
+    """
     cur.execute("""SELECT id FROM "User" WHERE name='SPIDER' LIMIT 1""")
     row = cur.fetchone()
-    sid = row[0] if row else 1
-    return f"http://trustclaims.whatscookin.us/users/{sid}"
+    if not row:
+        cur.execute("""INSERT INTO "User"(name, email, "authType")
+                       VALUES('SPIDER', 'spider@linkedtrust.us', 'PASSWORD')
+                       RETURNING id""")
+        row = cur.fetchone()
+    return f"http://trustclaims.whatscookin.us/users/{row[0]}"
+
+
+def norm_name(name):
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", "", (name or "").lower())).strip()
 
 
 def clean(text):
@@ -132,6 +152,7 @@ def main():
     cur.execute("""SELECT subject FROM "Claim" WHERE claim='impact'
                    AND subject LIKE 'https://app.hypercerts.org/%'""")
     seen = {r[0] for r in cur.fetchall()}
+    seen_names = set()   # project-level dedupe (same project minted more than once)
 
     insert_claim = (f'INSERT INTO "Claim" ({", ".join(chr(34)+c+chr(34) for c in CLAIM_COLS)}) '
                     f'VALUES ({", ".join(["%s"] * len(CLAIM_COLS))}) RETURNING id')
@@ -143,8 +164,10 @@ def main():
         if len(imported) >= n:
             break
         rec = map_claim(h, issuer)
-        if rec["subject"] in seen:
+        nm = norm_name(h["metadata"].get("name"))
+        if rec["subject"] in seen or nm in seen_names:
             continue
+        seen_names.add(nm)
         cur.execute(insert_claim, tuple(rec[c] for c in CLAIM_COLS))
         cid = cur.fetchone()[0]
         # Pass 2: fetch this one's image (data: URI) and attach it.
