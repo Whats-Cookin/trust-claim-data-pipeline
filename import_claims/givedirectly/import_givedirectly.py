@@ -26,7 +26,7 @@ SOURCE = "https://www.givedirectly.org/financials/"
 
 CLAIM = {
     "subject": SUBJECT,
-    "claim": "delivered_cash",
+    "claim": "impact",
     "statement": ("GiveDirectly has delivered ~$900M in cash directly to ~1.7M "
                   "people living in poverty (cumulative, through 2025)."),
     "aspect": "impact:cash transfers, poverty",
