@@ -1,1 +1,3 @@
+0,15,30,45 * * * * cd /data/trust-claim-data-pipeline ; . penv/bin/activate ; python3 run_off_pipeline.py
 0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /data/trust-claim-data-pipeline ; . penv/bin/activate ; python3 run_pipe.py
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /data/trust-claim-data-pipeline ; . penv/bin/activate ; python3 run_atproto_publisher.py

@@ -20,3 +20,7 @@ venv
 import_claims/.DS_Store
 spider_claims/crowdsupply/.env
 spider_claims/crowdsupply/spiders/__pycache__
+
+# Scraper output: timestamped run artifacts, not source
+spider_claims/openfoodfacts/data/
+spider_claims/openfoodfacts/scraper/data/

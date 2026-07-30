@@ -1,0 +1,12 @@
+{
+  "api_base_url": "https://world.openfoodfacts.org",
+  "search_endpoint": "/api/v2/search",
+  "fields": "code,product_name,brands,labels_tags,nutriscore_grade,ecoscore_grade,nova_group,url",
+  "page_size": 50,
+  "max_pages": 2,
+  "rate_limit_seconds": 7,
+  "target_labels": ["en:organic", "en:fair-trade", "en:rainforest-alliance", "en:eu-organic"],
+  "search_per_label": true,
+  "user_agent": "LinkedTrustBot/1.0 (trust-claim-data-pipeline; https://linkedtrust.us)",
+  "output_dir": "data"
+}

@@ -59,7 +59,12 @@ def normalize_uri(uri, issuer_id=None):
 
 
 def make_subject_uri(raw_claim):
-    """Even tho we are interested in using claim address in future, for now we stick to
-    the same method used by the app for consistency"""
+    """Use claimAddress (AT-URI) as the canonical claim URI when available.
+    This makes claims addressable by their decentralized AT-URI in the graph,
+    so claims-about-claims naturally link via AT-URI subjects.
+    Falls back to the app URL for claims not published to ATProto."""
+    claim_address = raw_claim.get("claimAddress")
+    if claim_address and claim_address.startswith("at://"):
+        return claim_address
     base_url = get_base_url()
     return "{}/claims/{}".format(base_url, raw_claim["id"])
