@@ -1,31 +1,19 @@
 import os
-import shutil
-import subprocess
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
-import boto3
 import psycopg2
 import pytest
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 
-# Import optional dependencies with fallbacks
-try:
-    from pyvirtualdisplay import Display
-    from selenium import webdriver
-
-    SELENIUM_AVAILABLE = True
-except ImportError:
-    SELENIUM_AVAILABLE = False
-
 from lib.cleaners import construct_uri, make_subject_uri, normalize_uri, get_base_url
 from lib.db import (
     del_claim,
     execute_sql_query,
     get_claim,
-    get_conn,
+    get_db_connection,
     get_edge_by_endpoints,
     get_node_by_uri,
     insert_data,
@@ -35,23 +23,7 @@ from lib.db import (
     unpublished_claims_generator,
     update_claim_address,
 )
-from lib.infer import close_display, infer_details, open_display
-
-
-def check_xvfb_installed():
-    return shutil.which("Xvfb") is not None
-
-
-def check_chrome_installed():
-    try:
-        subprocess.run(
-            ["google-chrome", "--version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        return True
-    except (subprocess.SubprocessError, FileNotFoundError):
-        return False
+from lib.infer import infer_details
 
 
 # Cleaners tests
@@ -136,22 +108,48 @@ def test_get_base_url_frontend_takes_precedence():
 
 
 # Database tests
-@patch("psycopg2.connect")
-def test_get_conn(mock_connect):
-    mock_conn = MagicMock()
-    mock_connect.return_value = mock_conn
-
-    conn = get_conn()
-    assert conn == mock_connect.return_value
-    mock_connect.assert_called_once()
-
-
-@patch("lib.db.get_conn")
-def test_get_claim(mock_get_conn):
+#
+# lib.db hands out connections from a ThreadedConnectionPool, so the tests fake the
+# pool rather than psycopg2.connect: get_pool() -> getconn() -> a connection whose
+# cursor() is a context manager. `closed = False` matters — get_db_connection only
+# commits and returns the connection to the pool when the connection is still open,
+# and a bare MagicMock attribute would read as closed.
+def _fake_pool(mock_get_pool):
+    """Wire pool -> connection -> cursor and hand back the last two."""
     mock_cursor = MagicMock()
     mock_conn = MagicMock()
+    mock_conn.closed = False
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_get_conn.return_value = mock_conn
+    mock_get_pool.return_value.getconn.return_value = mock_conn
+    return mock_conn, mock_cursor
+
+
+@patch("lib.db.get_pool")
+def test_get_db_connection_commits_and_returns_the_connection(mock_get_pool):
+    mock_conn, _ = _fake_pool(mock_get_pool)
+
+    with get_db_connection() as conn:
+        assert conn is mock_conn
+
+    mock_conn.commit.assert_called_once()
+    mock_get_pool.return_value.putconn.assert_called_once_with(mock_conn)
+
+
+@patch("lib.db.get_pool")
+def test_get_db_connection_leaves_a_closed_connection_alone(mock_get_pool):
+    mock_conn, _ = _fake_pool(mock_get_pool)
+    mock_conn.closed = True
+
+    with get_db_connection():
+        pass
+
+    mock_conn.commit.assert_not_called()
+    mock_get_pool.return_value.putconn.assert_not_called()
+
+
+@patch("lib.db.get_pool")
+def test_get_claim(mock_get_pool):
+    _, mock_cursor = _fake_pool(mock_get_pool)
 
     mock_cursor.description = [("id",), ("subject",)]
     mock_cursor.fetchone.return_value = (1, "test_subject")
@@ -160,14 +158,23 @@ def test_get_claim(mock_get_conn):
     assert result == {"id": 1, "subject": "test_subject"}
 
 
-@patch("lib.db.get_conn")
-def test_unprocessed_claims_generator(mock_get_conn):
-    mock_cursor = MagicMock()
-    mock_conn = MagicMock()
-    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_get_conn.return_value = mock_conn
+@patch("lib.db.get_pool")
+def test_get_claim_missing_returns_none(mock_get_pool):
+    _, mock_cursor = _fake_pool(mock_get_pool)
 
     mock_cursor.description = [("id",), ("subject",)]
+    mock_cursor.fetchone.return_value = None
+
+    assert get_claim(404) is None
+
+
+@patch("lib.db.get_pool")
+def test_unprocessed_claims_generator(mock_get_pool):
+    _, mock_cursor = _fake_pool(mock_get_pool)
+
+    mock_cursor.description = [("id",), ("subject",)]
+    # First fetchone is the latest processed claim id; then batches until one comes back empty.
+    mock_cursor.fetchone.return_value = (0,)
     mock_cursor.fetchmany.side_effect = [[(1, "test1")], [(2, "test2")], []]
 
     generator = unprocessed_claims_generator()
@@ -178,12 +185,9 @@ def test_unprocessed_claims_generator(mock_get_conn):
     assert results[1] == {"id": 2, "subject": "test2"}
 
 
-@patch("lib.db.get_conn")
-def test_execute_sql_query(mock_get_conn):
-    mock_cursor = MagicMock()
-    mock_conn = MagicMock()
-    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_get_conn.return_value = mock_conn
+@patch("lib.db.get_pool")
+def test_execute_sql_query(mock_get_pool):
+    _, mock_cursor = _fake_pool(mock_get_pool)
 
     mock_cursor.description = [("id",)]
     mock_cursor.fetchone.return_value = (1,)
@@ -192,15 +196,15 @@ def test_execute_sql_query(mock_get_conn):
     assert result == {"id": 1}
 
 
-@patch("lib.db.get_conn")
-def test_update_claim_address(mock_get_conn):
-    mock_cursor = MagicMock()
-    mock_get_conn.return_value.cursor.return_value.__enter__.return_value = mock_cursor
+@patch("lib.db.get_pool")
+def test_update_claim_address(mock_get_pool):
+    mock_conn, mock_cursor = _fake_pool(mock_get_pool)
 
     update_claim_address(1, "new_address")
 
     mock_cursor.execute.assert_called_once()
-    mock_cursor.connection.commit.assert_called_once()
+    # The commit belongs to the connection context manager now, not the cursor.
+    mock_conn.commit.assert_called_once()
 
 
 def test_update_claim_address_invalid():
@@ -209,9 +213,23 @@ def test_update_claim_address_invalid():
 
 
 # Infer tests
+#
+# infer_details reads status_code, headers["Content-Type"] and history off the response,
+# so a bare MagicMock is not enough: an unset status_code never equals 200, the HTML is
+# never parsed, and every case quietly returns the hostname fallback. _fake_response
+# spells the three out.
+def _fake_response(content=b"", content_type="text/html", status_code=200):
+    response = MagicMock()
+    response.content = content
+    response.status_code = status_code
+    response.headers = {"Content-Type": content_type}
+    response.history = []
+    return response
+
+
 @patch("requests.get")
 def test_infer_details_json(mock_get):
-    mock_response = MagicMock()
+    mock_response = _fake_response(content_type="application/json")
     mock_response.json.return_value = {"name": "Test Name", "image": "test.jpg"}
     mock_get.return_value = mock_response
 
@@ -228,8 +246,7 @@ def test_infer_details_html(mock_get):
         <body><h1>Test Header</h1></body>
     </html>
     """
-    mock_response = MagicMock()
-    mock_response.content = html_content.encode()
+    mock_response = _fake_response(content=html_content.encode())
     mock_response.json.side_effect = ValueError
     mock_get.return_value = mock_response
 
@@ -238,39 +255,28 @@ def test_infer_details_html(mock_get):
     assert image is None
 
 
-@pytest.mark.skipif(
-    not SELENIUM_AVAILABLE
-    or not check_xvfb_installed()
-    or not check_chrome_installed(),
-    reason="Selenium, Xvfb or Chrome not available",
-)
-@patch("selenium.webdriver.Chrome")
-@patch("pyvirtualdisplay.Display")
-def test_open_display(mock_display, mock_chrome):
-    mock_display_instance = MagicMock()
-    mock_display.return_value = mock_display_instance
+@patch("requests.get")
+def test_infer_details_falls_back_to_the_last_path_segment(mock_get):
+    """A page that answers but carries no title falls back to the URI itself: the last
+    path segment, tidied up, and the hostname only when there is no path."""
+    mock_get.return_value = _fake_response(content=b"<html><body></body></html>")
 
-    display, driver = open_display()
-
-    assert display == mock_display_instance
-    mock_display_instance.start.assert_called_once()
-    mock_chrome.assert_called_once()
+    name, image = infer_details("http://example.com/some/annual-report", save_thumbnail=False)
+    assert name == "Annual Report"
+    assert image is None
 
 
-@pytest.mark.skipif(
-    not SELENIUM_AVAILABLE
-    or not check_xvfb_installed()
-    or not check_chrome_installed(),
-    reason="Selenium, Xvfb or Chrome not available",
-)
-def test_close_display():
-    mock_display = MagicMock()
-    mock_driver = MagicMock()
+@patch("requests.get")
+def test_infer_details_falls_back_to_the_hostname_without_a_path(mock_get):
+    mock_get.return_value = _fake_response(content=b"<html><body></body></html>")
 
-    close_display(mock_display, mock_driver)
+    name, _ = infer_details("http://www.example.com/", save_thumbnail=False)
+    assert name == "example.com"
 
-    mock_display.stop.assert_called_once()
-    mock_driver.quit.assert_called_once()
+
+# The browser-screenshot path (open_display / close_display, Selenium + Xvfb) is gone
+# from lib/infer.py, so the two tests that drove it are gone with it, along with the
+# Selenium and Xvfb availability checks that only those tests used.
 
 
 if __name__ == "__main__":
