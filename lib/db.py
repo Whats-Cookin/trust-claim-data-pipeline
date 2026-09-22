@@ -197,6 +197,27 @@ def insert_node(node):
     return result['id'] if result else None
 
 
+def get_entity_name(uri):
+    """The name the API recorded for this URI, if a person supplied one.
+
+    uri_entities is written when a claim is posted and carries the name the
+    person signing gave. This pipeline runs afterwards and would otherwise name
+    the node from the URL slug, so a LinkedIn profile becomes
+    "Mahmoud Jameel 425833144" instead of Mahmoud Jameel. A name a person gave
+    wins over one derived from the URI.
+    """
+    query = 'SELECT name FROM uri_entities WHERE uri = %s;'
+    try:
+        row = execute_sql_query(query, (uri,))
+    except Exception as e:
+        print("Could not read uri_entities for {}: {}".format(uri, e))
+        return None
+    if not row:
+        return None
+    name = (row['name'] or '').strip()
+    return name or None
+
+
 def update_node_type(node_id, ent_type):
     """Update the entType of an existing node."""
     query = '''

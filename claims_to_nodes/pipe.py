@@ -4,6 +4,7 @@ from lib.cleaners import make_subject_uri, normalize_uri
 from lib.db import (
     all_claims_generator,
     get_claim,
+    get_entity_name,
     get_claim_image,
     get_edge_by_endpoints,
     get_node_by_uri,
@@ -34,7 +35,9 @@ def get_or_create_node(node_uri, raw_claim, new_node=None, subject_entity_type_h
 
     # Node doesn't exist, create it
     if new_node is None:
-        name = extract_fallback_name(node_uri)
+        # Prefer the name a person actually gave, recorded by the API when the
+        # claim was posted; fall back to one derived from the URI.
+        name = get_entity_name(node_uri) or extract_fallback_name(node_uri)
         # Use hint if provided, otherwise infer entity type from URI patterns
         if subject_entity_type_hint:
             ent_type = subject_entity_type_hint
